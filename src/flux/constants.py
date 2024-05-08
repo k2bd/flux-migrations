@@ -1,0 +1,1 @@
+FLUX_BACKEND_PLUGIN_GROUP = "flux.backend"
