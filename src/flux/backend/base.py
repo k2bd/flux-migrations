@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 
-from flux.applied_migration import AppliedMigration
+from flux.backend.applied_migration import AppliedMigration
 
 
 class MigrationBackend(ABC):
