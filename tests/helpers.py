@@ -92,3 +92,10 @@ class InMemoryMigrationBackend(MigrationBackend):
         Get the set of applied migrations.
         """
         return self.applied_migrations
+
+
+class InvalidBackend:
+    """
+    An empty class. Not a valid backend as it does not subclass
+    ``MigrationBackend``.
+    """
