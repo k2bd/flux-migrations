@@ -2,31 +2,37 @@ import os
 
 import pytest
 
-from flux.exceptions import InvalidMigrationModule
-from flux.migration.migration import read_python_migration, read_sql_migration
-from tests.unit.constants import DATA_DIR
+from flux.exceptions import InvalidMigrationModuleError
+from flux.migration.read_migration import read_python_migration, read_sql_migration
+from tests.unit.constants import MIGRATIONS_DIR
 
-EXAMPLE_SQL_UP = os.path.join(DATA_DIR, "example_up.sql")
-EXAMPLE_SQL_DOWN = os.path.join(DATA_DIR, "example_down.sql")
-EXAMPLE_PYTHON_DOWN_STR = os.path.join(DATA_DIR, "example_python_migration_down_str.py")
+EXAMPLE_SQL_UP = os.path.join(MIGRATIONS_DIR, "example_up.sql")
+EXAMPLE_SQL_DOWN = os.path.join(MIGRATIONS_DIR, "example_down.sql")
+EXAMPLE_PYTHON_DOWN_STR = os.path.join(
+    MIGRATIONS_DIR, "example_python_migration_down_str.py"
+)
 EXAMPLE_PYTHON_DOWN_NONE = os.path.join(
-    DATA_DIR, "example_python_migration_down_none.py"
+    MIGRATIONS_DIR, "example_python_migration_down_none.py"
 )
 EXAMPLE_PYTHON_DOWN_MISSING = os.path.join(
-    DATA_DIR, "example_python_migration_down_missing.py"
+    MIGRATIONS_DIR, "example_python_migration_down_missing.py"
 )
 
 
-INVALID_PYTHON_DOWN_INT = os.path.join(DATA_DIR, "invalid_python_migration_down_int.py")
+INVALID_PYTHON_DOWN_INT = os.path.join(
+    MIGRATIONS_DIR, "invalid_python_migration_down_int.py"
+)
 INVALID_PYTHON_DOWN_RAISES = os.path.join(
-    DATA_DIR, "invalid_python_migration_down_raises.py"
+    MIGRATIONS_DIR, "invalid_python_migration_down_raises.py"
 )
-INVALID_PYTHON_UP_INT = os.path.join(DATA_DIR, "invalid_python_migration_up_int.py")
+INVALID_PYTHON_UP_INT = os.path.join(
+    MIGRATIONS_DIR, "invalid_python_migration_up_int.py"
+)
 INVALID_PYTHON_UP_MISSING = os.path.join(
-    DATA_DIR, "invalid_python_migration_up_missing.py"
+    MIGRATIONS_DIR, "invalid_python_migration_up_missing.py"
 )
 INVALID_PYTHON_UP_RAISES = os.path.join(
-    DATA_DIR, "invalid_python_migration_up_raises.py"
+    MIGRATIONS_DIR, "invalid_python_migration_up_raises.py"
 )
 
 EXAMPLE_UP_TEXT = "create table example_table ( id serial primary key, name text );"
@@ -48,12 +54,12 @@ def test_read_sql_migration_without_down():
 
 
 def test_read_sql_migration_with_up_not_exist():
-    with pytest.raises(InvalidMigrationModule):
+    with pytest.raises(InvalidMigrationModuleError):
         read_sql_migration("fake.sql", EXAMPLE_SQL_DOWN)
 
 
 def test_read_sql_migration_with_down_not_exist():
-    with pytest.raises(InvalidMigrationModule):
+    with pytest.raises(InvalidMigrationModuleError):
         read_sql_migration(EXAMPLE_SQL_UP, "fake.sql")
 
 
@@ -89,5 +95,5 @@ def test_read_python_migration_down_missing():
     ],
 )
 def test_read_python_migration_invalid(migration_file):
-    with pytest.raises(InvalidMigrationModule):
+    with pytest.raises(InvalidMigrationModuleError):
         read_python_migration(migration_file)

@@ -2,7 +2,7 @@ import datetime as dt
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class AppliedMigration:
     """
     Information about a migration as applied to a database

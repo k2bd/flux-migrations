@@ -4,12 +4,12 @@ from unittest import mock
 
 import pytest
 
-from flux.exceptions import InvalidMigrationModule
+from flux.exceptions import InvalidMigrationModuleError
 from flux.migration.temporary_module import temporary_module
-from tests.unit.constants import DATA_DIR
+from tests.unit.constants import MODULES_DIR
 
-EXAMPLE_MODULE_FILENAME = os.path.join(DATA_DIR, "example_module.py")
-INVALID_MODULE_FILENAME = os.path.join(DATA_DIR, "invalid_module.txt")
+EXAMPLE_MODULE_FILENAME = os.path.join(MODULES_DIR, "example_module.py")
+INVALID_MODULE_FILENAME = os.path.join(MODULES_DIR, "invalid_module.txt")
 
 
 def test_temporary_module():
@@ -33,7 +33,7 @@ def test_temporary_module_module_name():
 
 
 def test_temporary_module_invalid_module():
-    with pytest.raises(InvalidMigrationModule) as e:
+    with pytest.raises(InvalidMigrationModuleError) as e:
         with temporary_module(INVALID_MODULE_FILENAME):
             pass
 

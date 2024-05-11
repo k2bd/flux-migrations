@@ -1,1 +1,3 @@
 FLUX_BACKEND_PLUGIN_GROUP = "flux.backend"
+
+DEFAULT_LOG_LEVEL = "INFO"

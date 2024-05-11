@@ -6,7 +6,7 @@ from string import ascii_lowercase
 from types import ModuleType
 from typing import Generator
 
-from flux.exceptions import InvalidMigrationModule
+from flux.exceptions import InvalidMigrationModuleError
 
 
 @contextmanager
@@ -17,7 +17,7 @@ def temporary_module(source_filename: str) -> Generator[ModuleType, None, None]:
     module_name = "".join(random.choices(ascii_lowercase, k=20))
     module_spec = spec_from_file_location(module_name, source_filename)
     if module_spec is None or module_spec.loader is None:
-        raise InvalidMigrationModule(
+        raise InvalidMigrationModuleError(
             f"Could not load migration module from {source_filename!r}"
         )
     module = module_from_spec(module_spec)

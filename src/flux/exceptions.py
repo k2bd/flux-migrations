@@ -10,7 +10,7 @@ class MigrationLoadingError(FluxMigrationException):
     """
 
 
-class InvalidMigrationModule(MigrationLoadingError):
+class InvalidMigrationModuleError(MigrationLoadingError):
     """
     Raised when a migration cannot be loaded from a module
     """
@@ -25,4 +25,16 @@ class BackendLoadingError(FluxMigrationException):
 class InvalidBackendError(BackendLoadingError):
     """
     Raised when a backend is not a subclass of ``MigrationBackend``
+    """
+
+
+class BackendNotInstalledError(BackendLoadingError):
+    """
+    A backend of the specified name is not installed
+    """
+
+
+class InvalidConfigurationError(FluxMigrationException):
+    """
+    Raised when the configuration file is invalid
     """

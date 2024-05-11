@@ -1,31 +1,36 @@
-from abc import ABC, abstractmethod
+import asyncio
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 
 from flux.backend.applied_migration import AppliedMigration
+from flux.backend.base import MigrationBackend
 
 
-class MigrationBackend(ABC):
+@dataclass
+class InMemoryMigrationBackend(MigrationBackend):
+    applied_migrations: set[AppliedMigration] = field(default_factory=set)
 
-    @classmethod
-    def from_config(cls, config: dict) -> "MigrationBackend":
-        """
-        Create a MigrationBackend from a configuration
+    connection_active: bool = False
+    transaction_active: bool = False
+    migration_lock_active: bool = False
 
-        This config appears in the config.toml file in the "backend" section.
-        """
-        return cls()
+    staged_migrations: set[AppliedMigration] = field(default_factory=set)
 
     @asynccontextmanager
-    @abstractmethod
     async def connection(self):
         """
         Create a connection that lasts as long as the context manager is
         active.
         """
-        yield
+        while self.connection_active:
+            await asyncio.sleep(0.1)
+        self.connection_active = True
+        try:
+            yield
+        finally:
+            self.connection_active = False
 
     @asynccontextmanager
-    @abstractmethod
     async def transaction(self):
         """
         Create a transaction that lasts as long as the context manager is
@@ -36,10 +41,20 @@ class MigrationBackend(ABC):
         If an exception is raised inside the context manager, the transaction
         is rolled back.
         """
-        yield
+        while self.transaction_active:
+            await asyncio.sleep(0.1)
+        self.transaction_active = True
+        try:
+            yield
+        except Exception:
+            raise
+        else:
+            self.applied_migrations.update(self.staged_migrations)
+        finally:
+            self.staged_migrations.clear()
+            self.transaction_active = False
 
     @asynccontextmanager
-    @abstractmethod
     async def migration_lock(self):
         """
         Create a lock that lasts as long as the context manager is active.
@@ -49,28 +64,31 @@ class MigrationBackend(ABC):
         This lock should prevent other migration processes from running
         concurrently.
         """
-        yield
+        while self.migration_lock_active:
+            await asyncio.sleep(0.1)
+        self.migration_lock_active = True
+        try:
+            yield
+        finally:
+            self.migration_lock_active = False
 
-    @abstractmethod
     async def register_migration(self, migration: str):
         """
         Register a migration as applied (when up-migrated)
         """
 
-    @abstractmethod
     async def unregister_migration(self, migration: str):
         """
         Unregister a migration (when down-migrated)
         """
 
-    @abstractmethod
     async def apply_migration(self, migration: str):
         """
         Apply a migration to the database.
         """
 
-    @abstractmethod
     async def get_applied_migrations(self) -> set[AppliedMigration]:
         """
         Get the set of applied migrations.
         """
+        return self.applied_migrations

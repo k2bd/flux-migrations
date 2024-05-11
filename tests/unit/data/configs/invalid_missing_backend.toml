@@ -1,0 +1,2 @@
+[flux]
+migration_directory = "migrations"
