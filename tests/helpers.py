@@ -1,9 +1,11 @@
 import asyncio
+import datetime as dt
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
+from flux.migration.migration import Migration
 
 
 @dataclass
@@ -72,19 +74,27 @@ class InMemoryMigrationBackend(MigrationBackend):
         finally:
             self.migration_lock_active = False
 
-    async def register_migration(self, migration: str):
+    async def register_migration(self, migration: Migration) -> AppliedMigration:
         """
         Register a migration as applied (when up-migrated)
         """
+        applied_migration = AppliedMigration(
+            id=migration.id,
+            hash=migration.up_hash,
+            applied_at=dt.datetime.now(),
+        )
+        self.staged_migrations.add(applied_migration)
+        return applied_migration
 
-    async def unregister_migration(self, migration: str):
+    async def unregister_migration(self, migration: Migration):
         """
         Unregister a migration (when down-migrated)
         """
 
-    async def apply_migration(self, migration: str):
+    async def apply_migration(self, content: str):
         """
-        Apply a migration to the database.
+        Apply a migration to the database. This is used for both up and down
+        migrations so should not register or unregister the migration hash.
         """
 
     async def get_applied_migrations(self) -> set[AppliedMigration]:

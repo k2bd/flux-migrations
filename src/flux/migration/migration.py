@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Migration:
+    id: str
     up: str
     down: str | None
 
