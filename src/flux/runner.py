@@ -107,12 +107,18 @@ class FluxRunner:
         ]
         migrations_to_apply = unapplied_migrations[:n]
 
+        for migration in self.pre_apply_migrations:
+            await self.backend.apply_migration(migration.up)
+
         for migration in migrations_to_apply:
             if migration.id in {m.id for m in self.applied_migrations}:
                 continue
 
             await self.backend.apply_migration(migration.up)
             await self.backend.register_migration(migration)
+
+        for migration in self.post_apply_migrations:
+            await self.backend.apply_migration(migration.up)
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 

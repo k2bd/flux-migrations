@@ -64,11 +64,11 @@ I've liked some features of different projects but the complete feature-set I'd 
 A non-exhaustive list of this feature-set includes
 - very flexible support for repeatable migration scripts
 - migration directory corruption detection
-- the ability to easily leverage Python to reuse code in migration generation
-- a Python library to easily manage migrations programmatically for test writing (e.g. integration tests that ensure migrations don't corrupt data)
+- the ability to easily leverage Python to reuse code in migrations
+- a Python library to easily manage migrations programmatically for test writing (e.g. integration tests of the effects of individual migrations)
 
 So, the motivation for this project was to
-- present the complete feature-set you'd want to find in a migration framework for Python projects
+- present a more complete feature-set you'd want to find in a migration framework for use with Python projects
 - use design patterns that make it easy to adapt for different kinds of projects, such as 
   - the plugin-based backend system
   - the co-maintenance of official Docker images
