@@ -44,12 +44,13 @@ class MigrationBackend(ABC):
     @abstractmethod
     async def migration_lock(self):
         """
-        Create a lock that lasts as long as the context manager is active.
-
-        The lock is released when the context manager exits.
-
-        This lock should prevent other migration processes from running
+        Create a lock that prevents other migration processes from running
         concurrently.
+
+        The acceptable unlock conditions are:
+        - The context manager exits
+        - The transaction ends
+        - The connection ends
         """
         yield
 

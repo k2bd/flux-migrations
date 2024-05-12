@@ -38,6 +38,7 @@ class FluxRunner:
 
     _conn_ctx = field(init=False)
     _tx_ctx = field(init=False)
+    _lock_ctx = field(init=False)
 
     pre_apply_migrations: list[Migration] = field(init=False)
     migrations: list[Migration] = field(init=False)
@@ -48,9 +49,11 @@ class FluxRunner:
     async def __aenter__(self):
         self._conn_ctx = self.backend.connection()
         self._tx_ctx = self.backend.transaction()
+        self._lock_ctx = self.backend.migration_lock()
 
         await self._conn_ctx.__aenter__()
         await self._tx_ctx.__aenter__()
+        await self._lock_ctx.__aenter__()
 
         self.pre_apply_migrations = read_pre_apply_migrations(config=self.config)
         self.migrations = read_migrations(config=self.config)
@@ -60,6 +63,7 @@ class FluxRunner:
 
     async def __aexit__(self, exc_type, exc, tb):
         await self._tx_ctx.__aexit__(exc_type, exc, tb)
+        await self._lock_ctx.__aexit__(exc_type, exc, tb)
         await self._conn_ctx.__aexit__(exc_type, exc, tb)
 
     @_initialize_if_needed
@@ -110,6 +114,8 @@ class FluxRunner:
             await self.backend.apply_migration(migration.up)
             await self.backend.register_migration(migration)
 
+        self.applied_migrations = await self.backend.get_applied_migrations()
+
     @_initialize_if_needed
     async def rollback_migrations(self, n: int | None = None):
         """
@@ -129,3 +135,5 @@ class FluxRunner:
             if migration.down is not None:
                 await self.backend.apply_migration(migration.down)
             await self.backend.unregister_migration(migration)
+
+        self.applied_migrations = await self.backend.get_applied_migrations()
