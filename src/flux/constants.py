@@ -1,3 +1,6 @@
 FLUX_BACKEND_PLUGIN_GROUP = "flux.backend"
 
 DEFAULT_LOG_LEVEL = "INFO"
+
+PRE_APPLY_DIRECTORY = "pre-apply"
+POST_APPLY_DIRECTORY = "post-apply"

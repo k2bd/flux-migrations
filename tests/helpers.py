@@ -74,6 +74,12 @@ class InMemoryMigrationBackend(MigrationBackend):
         finally:
             self.migration_lock_active = False
 
+    async def initialize(self):
+        """
+        Initialize the backend by creating any necessary tables etc in the
+        database.
+        """
+
     async def register_migration(self, migration: Migration) -> AppliedMigration:
         """
         Register a migration as applied (when up-migrated)

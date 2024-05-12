@@ -38,3 +38,9 @@ class InvalidConfigurationError(FluxMigrationException):
     """
     Raised when the configuration file is invalid
     """
+
+
+class MigrationDirectoryCorruptedError(FluxMigrationException):
+    """
+    Raised when the migration directory is corrupted
+    """

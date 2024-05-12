@@ -54,6 +54,19 @@ class MigrationBackend(ABC):
         yield
 
     @abstractmethod
+    async def is_initialized(self) -> bool:
+        """
+        Check if the backend is initialized
+        """
+
+    @abstractmethod
+    async def initialize(self):
+        """
+        Initialize the backend by creating any necessary tables etc in the
+        database.
+        """
+
+    @abstractmethod
     async def register_migration(self, migration: Migration) -> AppliedMigration:
         """
         Register a migration as applied (when up-migrated)
