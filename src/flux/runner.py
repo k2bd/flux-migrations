@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from functools import wraps
+from typing import Any
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
@@ -11,17 +11,6 @@ from flux.migration.read_migration import (
     read_post_apply_migrations,
     read_pre_apply_migrations,
 )
-
-
-def _initialize_if_needed(func):
-    @wraps(func)
-    async def wrapper(self: "FluxRunner", *args, **kwargs):
-        if not await self.backend.is_initialized():
-            await self.backend.initialize()
-
-        return await func(self, *args, **kwargs)
-
-    return wrapper
 
 
 @dataclass
@@ -36,9 +25,9 @@ class FluxRunner:
 
     backend: MigrationBackend
 
-    _conn_ctx = field(init=False)
-    _tx_ctx = field(init=False)
-    _lock_ctx = field(init=False)
+    _conn_ctx: Any = field(init=False)
+    _tx_ctx: Any = field(init=False)
+    _lock_ctx: Any = field(init=False)
 
     pre_apply_migrations: list[Migration] = field(init=False)
     migrations: list[Migration] = field(init=False)
@@ -55,18 +44,22 @@ class FluxRunner:
         await self._tx_ctx.__aenter__()
         await self._lock_ctx.__aenter__()
 
+        if not await self.backend.is_initialized():
+            await self.backend.initialize()
+
         self.pre_apply_migrations = read_pre_apply_migrations(config=self.config)
         self.migrations = read_migrations(config=self.config)
         self.post_apply_migrations = read_post_apply_migrations(config=self.config)
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
+        return self
+
     async def __aexit__(self, exc_type, exc, tb):
         await self._tx_ctx.__aexit__(exc_type, exc, tb)
         await self._lock_ctx.__aexit__(exc_type, exc, tb)
         await self._conn_ctx.__aexit__(exc_type, exc, tb)
 
-    @_initialize_if_needed
     async def validate_applied_migrations(self):
         """
         Confirms the following for applied migrations:
@@ -95,7 +88,6 @@ class FluxRunner:
                     f"Migration {migration.id} has changed since it was applied"
                 )
 
-    @_initialize_if_needed
     async def apply_migrations(self, n: int | None = None):
         """
         Apply unapplied migrations to the database
@@ -122,7 +114,6 @@ class FluxRunner:
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
-    @_initialize_if_needed
     async def rollback_migrations(self, n: int | None = None):
         """
         Rollback the last n applied migrations

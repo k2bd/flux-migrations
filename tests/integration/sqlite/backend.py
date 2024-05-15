@@ -3,22 +3,14 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
+import aiosqlite
+
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
 from flux.config import FluxConfig
 from flux.migration.migration import Migration
 
 VALID_TABLE_NAME = r"^[A-Za-z0-9_]+$"
-
-
-def _try_import_aiosqlite():
-    try:
-        import aiosqlite
-    except ImportError as e:
-        raise ImportError(
-            "Please install flux with the sqlite extras to use the sqlite backend."
-        ) from e
-    return aiosqlite
 
 
 @dataclass
@@ -52,7 +44,6 @@ class SQLiteBackend(MigrationBackend):
         Create a connection that lasts as long as the context manager is
         active.
         """
-        aiosqlite = _try_import_aiosqlite()
         async with aiosqlite.connect(self.db_path) as conn:
             self._conn = conn
             try:
@@ -89,7 +80,8 @@ class SQLiteBackend(MigrationBackend):
         - The transaction ends
         - The connection ends
         """
-        await self._conn.execute("pragma locking_mode = exclusive; begin exclusive;")
+        await self._conn.execute("pragma locking_mode = exclusive;")
+        await self._conn.execute("begin exclusive;")
         yield
 
     async def is_initialized(self) -> bool:
@@ -119,7 +111,6 @@ class SQLiteBackend(MigrationBackend):
                 applied_at timestamp not null default current_timestamp
             )
             """,
-            (self.migrations_table,),
         )
 
     async def register_migration(self, migration: Migration) -> AppliedMigration:

@@ -126,7 +126,7 @@ def test_read_repeatable_python_migration():
     migration = read_repeatable_python_migration(
         config=in_memory_config(migration_directory=DATA_DIR),
         migration_subdir="single-migrations",
-        migration_id="example_python_migration_down_missing",
+        migration_id=EXAMPLE_PYTHON_DOWN_MISSING,
     )
     assert migration.up == f"{EXAMPLE_UP_TEXT}"
     assert migration.down is None
@@ -136,11 +136,33 @@ def test_read_repeatable_python_migration():
 @pytest.mark.parametrize(
     "invalid_migration",
     [
-        "example_python_migration_down_str",
-        "example_python_migration_down_none",
+        EXAMPLE_PYTHON_DOWN_STR,
+        EXAMPLE_PYTHON_DOWN_NONE,
     ],
 )
 def test_read_repeatable_python_migration_with_down(invalid_migration: str):
+    """
+    Repeatable python migrations can't have a down
+    """
+    with pytest.raises(MigrationLoadingError) as e:
+        read_repeatable_python_migration(
+            config=in_memory_config(migration_directory=DATA_DIR),
+            migration_subdir="single-migrations",
+            migration_id=invalid_migration,
+        )
+
+    assert str(e.value) == "Repeatable migrations cannot have a down"
+
+
+@pytest.mark.parametrize(
+    "invalid_migration",
+    [
+        INVALID_PYTHON_UP_INT,
+        INVALID_PYTHON_UP_MISSING,
+        INVALID_PYTHON_UP_RAISES,
+    ],
+)
+def test_read_repeatable_python_migration_invalid(invalid_migration: str):
     """
     Repeatable python migrations can't have a down
     """

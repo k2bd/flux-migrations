@@ -180,8 +180,6 @@ def read_repeatable_python_migration(
         if not isinstance(up_migration, str):
             raise MigrationLoadingError("Up migration must return a string")
         if hasattr(module, "down"):
-            raise MigrationLoadingError(
-                "Repeatable migrations cannot have a down migration"
-            )
+            raise MigrationLoadingError("Repeatable migrations cannot have a down")
 
     return Migration(id=migration_id, up=up_migration, down=None)

@@ -5,7 +5,23 @@ from dataclasses import dataclass, field
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
+from flux.config import FluxConfig
 from flux.migration.migration import Migration
+
+
+def example_config(
+    *,
+    backend: str,
+    migration_directory: str,
+    log_level: str = "DEBUG",
+    backend_config: dict | None = None,
+):
+    return FluxConfig(
+        backend=backend,
+        migration_directory=migration_directory,
+        log_level=log_level,
+        backend_config=backend_config or {},
+    )
 
 
 @dataclass
