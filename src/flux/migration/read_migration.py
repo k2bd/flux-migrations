@@ -2,7 +2,7 @@ import os
 
 from flux.config import FluxConfig
 from flux.constants import POST_APPLY_DIRECTORY, PRE_APPLY_DIRECTORY
-from flux.exceptions import InvalidMigrationModuleError
+from flux.exceptions import MigrationLoadingError
 from flux.migration.migration import Migration
 from flux.migration.temporary_module import temporary_module
 
@@ -95,7 +95,7 @@ def read_sql_migration(*, config: FluxConfig, migration_id: str) -> Migration:
         with open(up_file) as f:
             up = f.read()
     except Exception as e:
-        raise InvalidMigrationModuleError("Error reading up migration") from e
+        raise MigrationLoadingError("Error reading up migration") from e
 
     if not os.path.exists(down_file):
         down = None
@@ -104,7 +104,7 @@ def read_sql_migration(*, config: FluxConfig, migration_id: str) -> Migration:
             with open(down_file) as f:
                 down = f.read()
         except Exception as e:
-            raise InvalidMigrationModuleError("Error reading down migration") from e
+            raise MigrationLoadingError("Error reading down migration") from e
 
     return Migration(id=migration_id, up=up, down=down)
 
@@ -126,7 +126,7 @@ def read_repeatable_sql_migration(
         with open(up_file) as f:
             up = f.read()
     except Exception as e:
-        raise InvalidMigrationModuleError("Error reading up migration") from e
+        raise MigrationLoadingError("Error reading up migration") from e
 
     return Migration(id=migration_id, up=up, down=None)
 
@@ -141,16 +141,16 @@ def read_python_migration(*, config: FluxConfig, migration_id: str) -> Migration
         try:
             up_migration = module.up()
         except Exception as e:
-            raise InvalidMigrationModuleError("Error reading up migration") from e
+            raise MigrationLoadingError("Error reading up migration") from e
         if not isinstance(up_migration, str):
-            raise InvalidMigrationModuleError("Up migration must return a string")
+            raise MigrationLoadingError("Up migration must return a string")
         if hasattr(module, "down"):
             try:
                 down_migration = module.down()
             except Exception as e:
-                raise InvalidMigrationModuleError("Error reading down migration") from e
+                raise MigrationLoadingError("Error reading down migration") from e
             if not isinstance(down_migration, str) and down_migration is not None:
-                raise InvalidMigrationModuleError(
+                raise MigrationLoadingError(
                     "Down migration must return a string or None"
                 )
         else:
@@ -176,11 +176,11 @@ def read_repeatable_python_migration(
         try:
             up_migration = module.up()
         except Exception as e:
-            raise InvalidMigrationModuleError("Error reading up migration") from e
+            raise MigrationLoadingError("Error reading up migration") from e
         if not isinstance(up_migration, str):
-            raise InvalidMigrationModuleError("Up migration must return a string")
+            raise MigrationLoadingError("Up migration must return a string")
         if hasattr(module, "down"):
-            raise InvalidMigrationModuleError(
+            raise MigrationLoadingError(
                 "Repeatable migrations cannot have a down migration"
             )
 
