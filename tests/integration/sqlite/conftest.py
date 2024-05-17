@@ -1,4 +1,5 @@
 import os
+import shutil
 from tempfile import TemporaryDirectory
 from typing import Generator
 
@@ -6,7 +7,6 @@ import pytest
 
 from tests.integration.sqlite.backend import SQLiteBackend
 from tests.integration.sqlite.constants import MIGRATIONS_1_DIR
-import shutil
 
 
 @pytest.fixture

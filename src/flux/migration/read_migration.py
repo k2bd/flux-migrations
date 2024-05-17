@@ -157,9 +157,7 @@ def read_python_migration(*, config: FluxConfig, migration_id: str) -> Migration
             except Exception as e:
                 raise MigrationLoadingError("Error reading down migration") from e
             if not isinstance(down_migration, str):
-                raise MigrationLoadingError(
-                    "Down migration must return a string"
-                )
+                raise MigrationLoadingError("Down migration must return a string")
         else:
             down_migration = None
 

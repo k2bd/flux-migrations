@@ -44,3 +44,9 @@ class MigrationDirectoryCorruptedError(FluxMigrationException):
     """
     Raised when the migration directory is corrupted
     """
+
+
+class MigrationApplyError(FluxMigrationException):
+    """
+    Raised when a migration fails to apply
+    """

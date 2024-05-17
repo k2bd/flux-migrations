@@ -1,13 +1,14 @@
 import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any
+
 import aiosqlite
 from aiosqlite import Connection
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
 from flux.config import FluxConfig
+from flux.exceptions import MigrationApplyError
 from flux.migration.migration import Migration
 
 VALID_TABLE_NAME = r"^[A-Za-z0-9_]+$"
@@ -46,10 +47,7 @@ class SQLiteBackend(MigrationBackend):
         """
         async with aiosqlite.connect(self.db_path) as conn:
             self._conn = conn
-            try:
-                yield
-            finally:
-                self._conn = None
+            yield
 
     @asynccontextmanager
     async def transaction(self):
@@ -128,6 +126,8 @@ class SQLiteBackend(MigrationBackend):
             (migration.id, migration.up_hash),
         )
         row = await cursor.fetchone()
+        if row is None:
+            raise MigrationApplyError("Failed to register migration")
         return AppliedMigration(id=row[0], hash=row[1], applied_at=row[2])
 
     async def unregister_migration(self, migration: Migration):

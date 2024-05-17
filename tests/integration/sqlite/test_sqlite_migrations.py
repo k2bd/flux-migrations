@@ -164,7 +164,7 @@ async def test_sqlite_migrations_apply_sequence(
 
     async with sqlite_backend.connection():
         migrations_table_rows = await sqlite_backend.get_all_rows("_flux_migrations")
-        assert len(migrations_table_rows) == 3
+        assert len(list(migrations_table_rows)) == 3
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200101_002_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
@@ -242,7 +242,7 @@ async def test_sqlite_migrations_apply_undo_all(
 
     async with sqlite_backend.connection():
         migrations_table_rows = await sqlite_backend.get_all_rows("_flux_migrations")
-        assert len(migrations_table_rows) == 0
+        assert len(list(migrations_table_rows)) == 0
 
         simple_table_info = await sqlite_backend.table_info("simple_table")
         assert simple_table_info == [
