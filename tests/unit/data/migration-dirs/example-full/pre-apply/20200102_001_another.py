@@ -1,2 +1,2 @@
-def up():
+def apply():
     return "pre-migration 3 content"

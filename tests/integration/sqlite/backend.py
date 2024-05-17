@@ -2,8 +2,8 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
-
 import aiosqlite
+from aiosqlite import Connection
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
@@ -18,7 +18,7 @@ class SQLiteBackend(MigrationBackend):
     db_path: str
     migrations_table: str
 
-    _conn: Any = field(init=False, repr=False)
+    _conn: Connection = field(init=False, repr=False)
 
     @classmethod
     def from_config(cls, config: FluxConfig) -> "SQLiteBackend":
@@ -64,10 +64,11 @@ class SQLiteBackend(MigrationBackend):
         """
         try:
             yield
-            await self._conn.commit()
         except Exception:
             await self._conn.rollback()
             raise
+        else:
+            await self._conn.commit()
 
     @asynccontextmanager
     async def migration_lock(self):
@@ -156,3 +157,19 @@ class SQLiteBackend(MigrationBackend):
             AppliedMigration(id=row[0], hash=row[1], applied_at=row[2])
             for row in await cursor.fetchall()
         }
+
+    # -- Testing methods
+
+    async def table_info(self, table_name: str):
+        """
+        Get information about a table in the database
+        """
+        cursor = await self._conn.execute(f"pragma table_info({table_name})")
+        return await cursor.fetchall()
+
+    async def get_all_rows(self, table_name: str):
+        """
+        Get all rows from a table
+        """
+        cursor = await self._conn.execute(f"select * from {table_name}")
+        return await cursor.fetchall()

@@ -1,6 +1,6 @@
-def up() -> str:
+def apply() -> str:
     raise ValueError("This migration is invalid.")
 
 
-def down() -> str | None:
+def undo() -> str | None:
     return "drop table example_table;"

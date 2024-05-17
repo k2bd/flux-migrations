@@ -14,8 +14,8 @@ def read_migrations(*, config: FluxConfig) -> list[Migration]:
     """
     migrations = []
     for migration_file in os.listdir(config.migration_directory):
-        if migration_file.endswith("_up.sql"):
-            migration_id = migration_file[:-7]
+        if migration_file.endswith(".sql") and not migration_file.endswith(".undo.sql"):
+            migration_id = migration_file[:-4]
             migrations.append(
                 read_sql_migration(config=config, migration_id=migration_id)
             )
@@ -88,8 +88,8 @@ def read_sql_migration(*, config: FluxConfig, migration_id: str) -> Migration:
     """
     Read a pair of SQL migration files and return a Migration object
     """
-    up_file = os.path.join(config.migration_directory, f"{migration_id}_up.sql")
-    down_file = os.path.join(config.migration_directory, f"{migration_id}_down.sql")
+    up_file = os.path.join(config.migration_directory, f"{migration_id}.sql")
+    down_file = os.path.join(config.migration_directory, f"{migration_id}.undo.sql")
 
     try:
         with open(up_file) as f:
@@ -128,6 +128,13 @@ def read_repeatable_sql_migration(
     except Exception as e:
         raise MigrationLoadingError("Error reading up migration") from e
 
+    if os.path.exists(
+        os.path.join(
+            config.migration_directory, migration_subdir, f"{migration_id}.undo.sql"
+        )
+    ):
+        raise MigrationLoadingError("Repeatable migrations cannot have a down")
+
     return Migration(id=migration_id, up=up, down=None)
 
 
@@ -139,19 +146,19 @@ def read_python_migration(*, config: FluxConfig, migration_id: str) -> Migration
 
     with temporary_module(migration_file) as module:
         try:
-            up_migration = module.up()
+            up_migration = module.apply()
         except Exception as e:
             raise MigrationLoadingError("Error reading up migration") from e
         if not isinstance(up_migration, str):
             raise MigrationLoadingError("Up migration must return a string")
-        if hasattr(module, "down"):
+        if hasattr(module, "undo"):
             try:
-                down_migration = module.down()
+                down_migration = module.undo()
             except Exception as e:
                 raise MigrationLoadingError("Error reading down migration") from e
-            if not isinstance(down_migration, str) and down_migration is not None:
+            if not isinstance(down_migration, str):
                 raise MigrationLoadingError(
-                    "Down migration must return a string or None"
+                    "Down migration must return a string"
                 )
         else:
             down_migration = None
@@ -174,12 +181,12 @@ def read_repeatable_python_migration(
 
     with temporary_module(migration_file) as module:
         try:
-            up_migration = module.up()
+            up_migration = module.apply()
         except Exception as e:
             raise MigrationLoadingError("Error reading up migration") from e
         if not isinstance(up_migration, str):
             raise MigrationLoadingError("Up migration must return a string")
-        if hasattr(module, "down"):
+        if hasattr(module, "undo"):
             raise MigrationLoadingError("Repeatable migrations cannot have a down")
 
     return Migration(id=migration_id, up=up_migration, down=None)

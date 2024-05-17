@@ -1,6 +1,6 @@
-def up():
+def apply():
     return "ccc up content"
 
 
-def down():
+def undo():
     return "ccc down content"

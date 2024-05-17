@@ -35,7 +35,7 @@ EXAMPLE_UP_TEXT = "create table example_table ( id serial primary key, name text
 EXAMPLE_DOWN_TEXT = "drop table example_table;"
 
 
-def test_read_sql_migration_with_down():
+def test_read_sql_migration_with_undo():
     migration = read_sql_migration(
         config=in_memory_config(migration_directory=MIGRATIONS_DIR),
         migration_id=EXAMPLE_SQL_WITH_DOWN,
@@ -45,7 +45,7 @@ def test_read_sql_migration_with_down():
     assert migration.up_hash == "a53b94e10e61374e5a20f9e361d638e2"
 
 
-def test_read_sql_migration_without_down():
+def test_read_sql_migration_without_undo():
     migration = read_sql_migration(
         config=in_memory_config(migration_directory=MIGRATIONS_DIR),
         migration_id=EXAMPLE_SQL_WITHOUT_DOWN,
@@ -73,16 +73,6 @@ def test_read_python_migration_down_str():
     assert migration.up_hash == "2ea715441b43f1bdc8428238385bb592"
 
 
-def test_read_python_migration_down_none():
-    migration = read_python_migration(
-        config=in_memory_config(migration_directory=MIGRATIONS_DIR),
-        migration_id=EXAMPLE_PYTHON_DOWN_NONE,
-    )
-    assert migration.up == f"{EXAMPLE_UP_TEXT}"
-    assert migration.down is None
-    assert migration.up_hash == "2ea715441b43f1bdc8428238385bb592"
-
-
 def test_read_python_migration_down_missing():
     migration = read_python_migration(
         config=in_memory_config(migration_directory=MIGRATIONS_DIR),
@@ -98,6 +88,7 @@ def test_read_python_migration_down_missing():
     [
         INVALID_PYTHON_DOWN_INT,
         INVALID_PYTHON_DOWN_RAISES,
+        EXAMPLE_PYTHON_DOWN_NONE,
         INVALID_PYTHON_UP_INT,
         INVALID_PYTHON_UP_MISSING,
         INVALID_PYTHON_UP_RAISES,
@@ -115,11 +106,22 @@ def test_read_repeatable_sql_migration():
     migration = read_repeatable_sql_migration(
         config=in_memory_config(migration_directory=DATA_DIR),
         migration_subdir="single-migrations",
-        migration_id="sql_example_2_up",
+        migration_id="sql_example_2",
     )
     assert migration.up == f"{EXAMPLE_UP_TEXT}\n"
     assert migration.down is None
     assert migration.up_hash == "a53b94e10e61374e5a20f9e361d638e2"
+
+
+def test_read_repeatable_sql_migration_invalid():
+    with pytest.raises(MigrationLoadingError) as e:
+        read_repeatable_sql_migration(
+            config=in_memory_config(migration_directory=DATA_DIR),
+            migration_subdir="single-migrations",
+            migration_id="sql_example",
+        )
+
+    assert str(e.value) == "Repeatable migrations cannot have a down"
 
 
 def test_read_repeatable_python_migration():
@@ -140,7 +142,7 @@ def test_read_repeatable_python_migration():
         EXAMPLE_PYTHON_DOWN_NONE,
     ],
 )
-def test_read_repeatable_python_migration_with_down(invalid_migration: str):
+def test_read_repeatable_python_migration_with_undo(invalid_migration: str):
     """
     Repeatable python migrations can't have a down
     """
