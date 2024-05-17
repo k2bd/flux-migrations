@@ -4,7 +4,7 @@ from typing import Any
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
 from flux.config import FluxConfig
-from flux.exceptions import MigrationDirectoryCorruptedError
+from flux.exceptions import MigrationApplyError, MigrationDirectoryCorruptedError
 from flux.migration.migration import Migration
 from flux.migration.read_migration import (
     read_migrations,
@@ -37,12 +37,12 @@ class FluxRunner:
 
     async def __aenter__(self):
         self._conn_ctx = self.backend.connection()
-        self._tx_ctx = self.backend.transaction()
         self._lock_ctx = self.backend.migration_lock()
+        self._tx_ctx = self.backend.transaction()
 
         await self._conn_ctx.__aenter__()
-        await self._tx_ctx.__aenter__()
         await self._lock_ctx.__aenter__()
+        await self._tx_ctx.__aenter__()
 
         if not await self.backend.is_initialized():
             await self.backend.initialize()
@@ -66,14 +66,17 @@ class FluxRunner:
         - There is no discontinuity in the applied migrations
         - The migration hashes of all applied migrations haven't changed
         """
+        applied_migrations = sorted(self.applied_migrations, key=lambda m: m.id)
+        if not applied_migrations:
+            return
+
+        last_applied_migration = applied_migrations[-1]
         applied_migration_files = [
-            m
-            for m in self.migrations
-            if m.id in {_m.id for _m in self.applied_migrations}
+            m for m in self.migrations if m.id <= last_applied_migration.id
         ]
 
-        if not [m.id for m in applied_migration_files] == [
-            m.id for m in self.migrations[: len(applied_migration_files)]
+        if [m.id for m in applied_migration_files] != [
+            m.id for m in applied_migrations
         ]:
             raise MigrationDirectoryCorruptedError(
                 "There is a discontinuity in the applied migrations"
@@ -100,17 +103,32 @@ class FluxRunner:
         migrations_to_apply = unapplied_migrations[:n]
 
         for migration in self.pre_apply_migrations:
-            await self.backend.apply_migration(migration.up)
+            try:
+                await self.backend.apply_migration(migration.up)
+            except Exception as e:
+                raise MigrationApplyError(
+                    f"Failed to apply pre-apply migration {migration.id}"
+                ) from e
 
         for migration in migrations_to_apply:
             if migration.id in {m.id for m in self.applied_migrations}:
                 continue
 
-            await self.backend.apply_migration(migration.up)
-            await self.backend.register_migration(migration)
+            try:
+                await self.backend.apply_migration(migration.up)
+                await self.backend.register_migration(migration)
+            except Exception as e:
+                raise MigrationApplyError(
+                    f"Failed to apply migration {migration.id}"
+                ) from e
 
         for migration in self.post_apply_migrations:
-            await self.backend.apply_migration(migration.up)
+            try:
+                await self.backend.apply_migration(migration.up)
+            except Exception as e:
+                raise MigrationApplyError(
+                    f"Failed to apply post-apply migration {migration.id}"
+                ) from e
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
@@ -129,8 +147,13 @@ class FluxRunner:
         migrations_to_rollback = migrations_to_rollback[::-1]
 
         for migration in migrations_to_rollback:
-            if migration.down is not None:
-                await self.backend.apply_migration(migration.down)
-            await self.backend.unregister_migration(migration)
+            try:
+                if migration.down is not None:
+                    await self.backend.apply_migration(migration.down)
+                await self.backend.unregister_migration(migration)
+            except Exception as e:
+                raise MigrationApplyError(
+                    f"Failed to rollback migration {migration.id}"
+                ) from e
 
         self.applied_migrations = await self.backend.get_applied_migrations()

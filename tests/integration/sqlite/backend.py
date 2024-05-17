@@ -8,7 +8,6 @@ from aiosqlite import Connection
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
 from flux.config import FluxConfig
-from flux.exceptions import MigrationApplyError
 from flux.migration.migration import Migration
 
 VALID_TABLE_NAME = r"^[A-Za-z0-9_]+$"
@@ -127,7 +126,7 @@ class SQLiteBackend(MigrationBackend):
         )
         row = await cursor.fetchone()
         if row is None:
-            raise MigrationApplyError("Failed to register migration")
+            raise RuntimeError("Failed to register migration")
         return AppliedMigration(id=row[0], hash=row[1], applied_at=row[2])
 
     async def unregister_migration(self, migration: Migration):
