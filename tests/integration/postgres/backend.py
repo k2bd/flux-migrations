@@ -2,8 +2,8 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
-import aiosqlite
-from aiosqlite import Connection
+from databases import Database
+from databases.core import Connection, Transaction
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
@@ -14,29 +14,31 @@ VALID_TABLE_NAME = r"^[A-Za-z0-9_]+$"
 
 
 @dataclass
-class SQLiteBackend(MigrationBackend):
-    db_path: str
+class TestingPostgresBackend(MigrationBackend):
+    database_url: str
     migrations_table: str
+    migrations_lock_id: int = 3589
 
+    _db: Database = field(init=False, repr=False)
     _conn: Connection = field(init=False, repr=False)
+    _tx: Transaction = field(init=False, repr=False)
 
     @classmethod
-    def from_config(cls, config: FluxConfig) -> "SQLiteBackend":
+    def from_config(cls, config: FluxConfig) -> "TestingPostgresBackend":
         """
         Create a MigrationBackend from a configuration
 
         This config appears in the config.toml file in the "backend" section.
         """
-        db_path = config.backend_config.get("database", ":memory:")
+        database_url = config.backend_config.get("database_url")
+        if not database_url:
+            raise ValueError("No database_url provided.")
         migrations_table = config.backend_config.get(
             "migrations_table", "_flux_migrations"
         )
         if not re.match(VALID_TABLE_NAME, migrations_table):
             raise ValueError("Invalid table name provided.")
-        return cls(
-            db_path=db_path,
-            migrations_table=migrations_table,
-        )
+        return cls(migrations_table=migrations_table)
 
     @asynccontextmanager
     async def connection(self):
@@ -44,9 +46,12 @@ class SQLiteBackend(MigrationBackend):
         Create a connection that lasts as long as the context manager is
         active.
         """
-        async with aiosqlite.connect(self.db_path) as conn:
-            self._conn = conn
+        self._db = Database(self.database_url)
+        self._conn = await self._db.connect()
+        try:
             yield
+        finally:
+            await self._db.disconnect()
 
     @asynccontextmanager
     async def transaction(self):
@@ -59,13 +64,15 @@ class SQLiteBackend(MigrationBackend):
         If an exception is raised inside the context manager, the transaction
         is rolled back.
         """
+        self._tx = self._db.transaction()
+        await self._tx.start()
         try:
             yield
-        except Exception:
-            await self._conn.rollback()
-            raise
+        except Exception as e:
+            await self._tx.rollback()
+            raise e
         else:
-            await self._conn.commit()
+            await self._tx.commit()
 
     @asynccontextmanager
     async def migration_lock(self):
@@ -78,19 +85,17 @@ class SQLiteBackend(MigrationBackend):
         - The transaction ends
         - The connection ends
         """
-        await self._conn.execute("pragma locking_mode = exclusive;")
-        await self._conn.execute("begin exclusive;")
-        yield
+        await self._conn.execute("select pg_advisory_lock(1)")
 
     async def is_initialized(self) -> bool:
         """
         Check if the backend is initialized
         """
-        cursor = await self._conn.execute(
-            "select name from sqlite_master where type='table' and name = ?",
-            (self.migrations_table,),
+        result = await self._conn.fetch_val(
+            "select name from sqlite_master where type='table' and name = :table_name",
+            {"table_name": self.migrations_table},
         )
-        if (await cursor.fetchone()) is None:
+        if result is None:
             return False
 
         return True
@@ -100,7 +105,7 @@ class SQLiteBackend(MigrationBackend):
         Initialize the backend by creating any necessary tables etc in the
         database.
         """
-        await self._conn.execute(
+        await self._tx.execute(
             f"""
             create table if not exists {self.migrations_table}
             (
@@ -115,7 +120,7 @@ class SQLiteBackend(MigrationBackend):
         """
         Register a migration as applied (when up-migrated)
         """
-        cursor = await self._conn.execute(
+        cursor = await self._tx.execute(
             f"""
                 insert into {self.migrations_table}
                 (id, hash, applied_at)
@@ -133,7 +138,7 @@ class SQLiteBackend(MigrationBackend):
         """
         Unregister a migration (when down-migrated)
         """
-        await self._conn.execute(
+        await self._tx.execute(
             f"delete from {self.migrations_table} where id = ?", (migration.id,)
         )
 
@@ -143,13 +148,13 @@ class SQLiteBackend(MigrationBackend):
         up and down migrations so should not register or unregister the
         migration hash.
         """
-        await self._conn.executescript(content)
+        await self._tx.executescript(content)
 
     async def get_applied_migrations(self) -> set[AppliedMigration]:
         """
         Get the set of applied migrations.
         """
-        cursor = await self._conn.execute(
+        cursor = await self._tx.execute(
             f"select id, hash, applied_at from {self.migrations_table}"
         )
         return {
@@ -163,12 +168,12 @@ class SQLiteBackend(MigrationBackend):
         """
         Get information about a table in the database
         """
-        cursor = await self._conn.execute(f"pragma table_info({table_name})")
+        cursor = await self._tx.execute(f"pragma table_info({table_name})")
         return await cursor.fetchall()
 
     async def get_all_rows(self, table_name: str):
         """
         Get all rows from a table
         """
-        cursor = await self._conn.execute(f"select * from {table_name}")
+        cursor = await self._tx.execute(f"select * from {table_name}")
         return await cursor.fetchall()

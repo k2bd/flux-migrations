@@ -20,7 +20,8 @@ poethepoet = "^0.26.1"
 pytest = "^8.2.0"
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.6"
-aiosqlite = "^0.20.0"
+aiopg = "^1.4.0"
+databases = "^0.9.0"
 
 [tool.isort]
 profile = "black"
@@ -46,8 +47,14 @@ sequence = [
 
 [tool.poe.tasks.integration]
 sequence = [
+    {cmd = "docker compose -f docker-compose.test.yml up -d --wait"},
     {cmd = "pytest -vv --cov-append --cov-report xml --cov-report term --cov=flux tests/integration"},
+    {cmd = "docker compose -f docker-compose.test.yml down"},
 ]
+ignore_fail = "return_non_zero"
+
+[tool.poe.tasks.integration.env]
+TEST_PG_CONNECTION_STRING = "postgresql+aiopg://postgres:postgres@localhost:55443/postgres"
 
 
 [build-system]
