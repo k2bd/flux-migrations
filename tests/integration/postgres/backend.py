@@ -12,16 +12,21 @@ from flux.migration.migration import Migration
 
 VALID_TABLE_NAME = r"^[A-Za-z0-9_]+$"
 
+DEFAULT_MIGRATIONS_SCHEMA = "public"
+DEFAULT_MIGRATIONS_TABLE = "_flux_migrations"
+DEFAULT_MIGRATIONS_LOCK_ID = 3589
+
 
 @dataclass
 class TestingPostgresBackend(MigrationBackend):
     database_url: str
-    migrations_table: str
-    migrations_lock_id: int = 3589
+    migrations_table: str = DEFAULT_MIGRATIONS_TABLE
+    migrations_schema: str = DEFAULT_MIGRATIONS_SCHEMA
+    migrations_lock_id: int = DEFAULT_MIGRATIONS_LOCK_ID
 
     _db: Database = field(init=False, repr=False)
-    _conn: Connection = field(init=False, repr=False)
     _tx: Transaction = field(init=False, repr=False)
+    _conn: Connection = field(init=False, repr=False)
 
     @classmethod
     def from_config(cls, config: FluxConfig) -> "TestingPostgresBackend":
@@ -34,11 +39,22 @@ class TestingPostgresBackend(MigrationBackend):
         if not database_url:
             raise ValueError("No database_url provided.")
         migrations_table = config.backend_config.get(
-            "migrations_table", "_flux_migrations"
+            "migrations_table", DEFAULT_MIGRATIONS_TABLE
+        )
+        migrations_lock_id = config.backend_config.get(
+            "migrations_lock_id", DEFAULT_MIGRATIONS_LOCK_ID
         )
         if not re.match(VALID_TABLE_NAME, migrations_table):
             raise ValueError("Invalid table name provided.")
-        return cls(migrations_table=migrations_table)
+        migrations_schema = config.backend_config.get(
+            "migrations_schema", DEFAULT_MIGRATIONS_SCHEMA
+        )
+        return cls(
+            database_url=database_url,
+            migrations_table=migrations_table,
+            migrations_lock_id=migrations_lock_id,
+            migrations_schema=migrations_schema,
+        )
 
     @asynccontextmanager
     async def connection(self):
@@ -47,11 +63,14 @@ class TestingPostgresBackend(MigrationBackend):
         active.
         """
         self._db = Database(self.database_url)
-        self._conn = await self._db.connect()
-        try:
-            yield
-        finally:
-            await self._db.disconnect()
+        await self._db.connect()
+        async with self._db.transaction() as tx:
+            self._tx = tx
+            self._conn = self._db.connection()
+            try:
+                yield
+            finally:
+                await self._db.disconnect()
 
     @asynccontextmanager
     async def transaction(self):
@@ -64,15 +83,13 @@ class TestingPostgresBackend(MigrationBackend):
         If an exception is raised inside the context manager, the transaction
         is rolled back.
         """
-        self._tx = self._db.transaction()
-        await self._tx.start()
         try:
             yield
-        except Exception as e:
-            await self._tx.rollback()
-            raise e
+        except Exception:
+            await self._conn.rollback()
+            raise
         else:
-            await self._tx.commit()
+            await self._conn.commit()
 
     @asynccontextmanager
     async def migration_lock(self):
@@ -85,17 +102,37 @@ class TestingPostgresBackend(MigrationBackend):
         - The transaction ends
         - The connection ends
         """
-        await self._conn.execute("select pg_advisory_lock(1)")
+        await self._conn.execute(
+            "select pg_advisory_lock(:lock_id)",
+            {"lock_id": self.migrations_lock_id},
+        )
+        try:
+            yield
+        finally:
+            await self._conn.execute(
+                "select pg_advisory_unlock(:lock_id)",
+                {"lock_id": self.migrations_lock_id},
+            )
 
     async def is_initialized(self) -> bool:
         """
         Check if the backend is initialized
         """
-        result = await self._conn.fetch_val(
-            "select name from sqlite_master where type='table' and name = :table_name",
-            {"table_name": self.migrations_table},
+        schema_result = await self._conn.fetch_val(
+            "SELECT schema_name FROM information_schema.schemata WHERE schema_name = :schema_name;",
+            {"schema_name": self.migrations_schema},
         )
-        if result is None:
+        if schema_result is None:
+            return False
+
+        table_result = await self._conn.fetch_val(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema_name AND table_name = :table_name;",
+            {
+                "schema_name": self.migrations_schema,
+                "table_name": self.migrations_table,
+            },
+        )
+        if table_result is None:
             return False
 
         return True
@@ -105,9 +142,9 @@ class TestingPostgresBackend(MigrationBackend):
         Initialize the backend by creating any necessary tables etc in the
         database.
         """
-        await self._tx.execute(
+        await self._conn.execute(
             f"""
-            create table if not exists {self.migrations_table}
+            create table if not exists {self.migrations_schema}.{self.migrations_table}
             (
                 id text primary key,
                 hash text not null,
@@ -120,16 +157,18 @@ class TestingPostgresBackend(MigrationBackend):
         """
         Register a migration as applied (when up-migrated)
         """
-        cursor = await self._tx.execute(
+        row = await self._conn.fetch_one(
             f"""
                 insert into {self.migrations_table}
                 (id, hash, applied_at)
-                values (?, ?, current_timestamp)
+                values (:migration_id, :up_hash, current_timestamp)
                 returning *
             """,
-            (migration.id, migration.up_hash),
+            {
+                "migration_id": migration.id,
+                "up_hash": migration.up_hash,
+            },
         )
-        row = await cursor.fetchone()
         if row is None:
             raise RuntimeError("Failed to register migration")
         return AppliedMigration(id=row[0], hash=row[1], applied_at=row[2])
@@ -138,7 +177,7 @@ class TestingPostgresBackend(MigrationBackend):
         """
         Unregister a migration (when down-migrated)
         """
-        await self._tx.execute(
+        await self._conn.execute(
             f"delete from {self.migrations_table} where id = ?", (migration.id,)
         )
 
@@ -148,18 +187,18 @@ class TestingPostgresBackend(MigrationBackend):
         up and down migrations so should not register or unregister the
         migration hash.
         """
-        await self._tx.executescript(content)
+        await self._conn.execute(content)
 
     async def get_applied_migrations(self) -> set[AppliedMigration]:
         """
         Get the set of applied migrations.
         """
-        cursor = await self._tx.execute(
+        result = await self._conn.fetch_val(
             f"select id, hash, applied_at from {self.migrations_table}"
         )
         return {
             AppliedMigration(id=row[0], hash=row[1], applied_at=row[2])
-            for row in await cursor.fetchall()
+            for row in result
         }
 
     # -- Testing methods
@@ -168,12 +207,12 @@ class TestingPostgresBackend(MigrationBackend):
         """
         Get information about a table in the database
         """
-        cursor = await self._tx.execute(f"pragma table_info({table_name})")
+        cursor = await self._conn.execute(f"pragma table_info({table_name})")
         return await cursor.fetchall()
 
     async def get_all_rows(self, table_name: str):
         """
         Get all rows from a table
         """
-        cursor = await self._tx.execute(f"select * from {table_name}")
+        cursor = await self._conn.execute(f"select * from {table_name}")
         return await cursor.fetchall()
