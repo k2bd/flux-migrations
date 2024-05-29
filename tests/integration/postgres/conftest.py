@@ -1,34 +1,38 @@
 import os
+import random
 import shutil
+from string import ascii_lowercase
 from tempfile import TemporaryDirectory
-from typing import Generator
+from typing import AsyncGenerator, Generator
 
 import pytest
-
-from tests.integration.postgres.backend import TestingPostgresBackend
-from tests.integration.postgres.constants import MIGRATIONS_1_DIR
-from tests.integration.postgres.constants import TEST_PG_CONNECTION_STRING
 from databases import Database
-from databases.core import Connection, Transaction
 
-
-async def delete_database():
-    db = Database(TEST_PG_CONNECTION_STRING)
-    conn = await db.connect()
-    await conn.execute("drop database postgres")
-    await conn.execute("create database postgres")
-    await conn.close()
+from tests.integration.postgres.backend import ExamplePostgresBackend
+from tests.integration.postgres.constants import (
+    MIGRATIONS_1_DIR,
+    TEST_PG_CONNECTION_STRING,
+    TEST_PG_MANAGEMENT_DB,
+)
 
 
 @pytest.fixture
-async def postgres_backend():
-    try:
-        yield TestingPostgresBackend(
-            database_url=TEST_PG_CONNECTION_STRING,
-            migrations_table="_flux_migrations",
-        )
-    finally:
-        await delete_database()
+async def test_database() -> AsyncGenerator[str, None]:
+    test_db_name = "test_" + "".join(random.choices(ascii_lowercase, k=10))
+    async with Database(f"{TEST_PG_CONNECTION_STRING}/{TEST_PG_MANAGEMENT_DB}") as db:
+        await db.execute(f"create database {test_db_name}")
+        try:
+            yield test_db_name
+        finally:
+            await db.execute(f"drop database {test_db_name}")
+
+
+@pytest.fixture
+async def postgres_backend(test_database):
+    return ExamplePostgresBackend(
+        database_url=f"{TEST_PG_CONNECTION_STRING}/{test_database}",
+        migrations_table="_flux_migrations",
+    )
 
 
 @pytest.fixture

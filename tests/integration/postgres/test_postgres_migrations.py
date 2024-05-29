@@ -4,7 +4,7 @@ import pytest
 
 from flux.exceptions import MigrationApplyError, MigrationDirectoryCorruptedError
 from flux.runner import FluxRunner
-from tests.integration.postgres.backend import TestingPostgresBackend
+from tests.integration.postgres.backend import ExamplePostgresBackend
 from tests.integration.postgres.helpers import postgres_config
 
 
@@ -39,7 +39,7 @@ def _write_new_bad_migration(migrations_dir: str):
 
 
 async def test_postgres_migrations_apply(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -55,7 +55,7 @@ async def test_postgres_migrations_apply(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -65,44 +65,44 @@ async def test_postgres_migrations_apply(
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
-            (2, "timestamp", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
+            ("timestamp", "text"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
         assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("info", "text"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
 async def test_postgres_migrations_apply_add_apply(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -119,7 +119,7 @@ async def test_postgres_migrations_apply_add_apply(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -133,7 +133,7 @@ async def test_postgres_migrations_apply_add_apply(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -142,7 +142,7 @@ async def test_postgres_migrations_apply_add_apply(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
             "20200103_001_add_info_to_new_table": "2494e84a32039ba7fff00496da758df4",
         }
 
@@ -151,46 +151,46 @@ async def test_postgres_migrations_apply_add_apply(
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
             "20200103_001_add_info_to_new_table": "2494e84a32039ba7fff00496da758df4",
         }
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
-            (2, "timestamp", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
+            ("timestamp", "text"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
         assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
-            (2, "new_col", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("info", "text"),
+            ("new_col", "text"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
 async def test_postgres_migrations_apply_1(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -217,32 +217,32 @@ async def test_postgres_migrations_apply_1(
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
 async def test_postgres_migrations_apply_sequence(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -272,7 +272,7 @@ async def test_postgres_migrations_apply_sequence(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -283,44 +283,44 @@ async def test_postgres_migrations_apply_sequence(
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
-            (2, "timestamp", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
+            ("timestamp", "text"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
         assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("info", "text"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
 async def test_postgres_migrations_apply_undo_all(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -336,7 +336,7 @@ async def test_postgres_migrations_apply_undo_all(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -359,37 +359,37 @@ async def test_postgres_migrations_apply_undo_all(
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
         assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("info", "text"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
 async def test_postgres_migrations_apply_undo_redo(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -405,7 +405,7 @@ async def test_postgres_migrations_apply_undo_redo(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -433,7 +433,7 @@ async def test_postgres_migrations_apply_undo_redo(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -443,44 +443,44 @@ async def test_postgres_migrations_apply_undo_redo(
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
-            (2, "timestamp", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
+            ("timestamp", "text"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
         assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("info", "text"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
 async def test_postgres_migrations_apply_undo_2(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -496,7 +496,7 @@ async def test_postgres_migrations_apply_undo_2(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -524,33 +524,33 @@ async def test_postgres_migrations_apply_undo_2(
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
         assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("info", "text"),
         ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]
 
 
@@ -563,7 +563,7 @@ async def test_postgres_migrations_apply_undo_2(
     ],
 )
 async def test_postgres_migrations_corrupted_applied_migration_removed(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
     file_to_remove: str,
 ):
@@ -580,7 +580,7 @@ async def test_postgres_migrations_corrupted_applied_migration_removed(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -596,7 +596,7 @@ async def test_postgres_migrations_corrupted_applied_migration_removed(
 
 
 async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -636,7 +636,7 @@ async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
     ],
 )
 async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
     file_to_modify: str,
 ):
@@ -653,7 +653,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -677,7 +677,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
     ],
 )
 async def test_postgres_migrations_corrupted_applied_migration_modified_py(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
     file_to_modify: str,
 ):
@@ -694,7 +694,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_py(
         assert {m.id: m.hash for m in runner.applied_migrations} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
-            "20200102_002_create_new_table": "3aa084560ac052fa463abc88f20158d8",
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         await runner.validate_applied_migrations()
@@ -711,7 +711,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_py(
 
 
 async def test_postgres_migrations_with_bad_migration(
-    postgres_backend: TestingPostgresBackend,
+    postgres_backend: ExamplePostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -754,33 +754,29 @@ async def test_postgres_migrations_with_bad_migration(
 
         simple_table_info = await postgres_backend.table_info("simple_table")
         assert simple_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "data", "TEXT", 0, None, 0),
-            (2, "description", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
+            ("description", "text"),
         ]
 
         another_table_info = await postgres_backend.table_info("another_table")
         assert another_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "value", "INTEGER", 0, None, 0),
-            (2, "timestamp", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
+            ("timestamp", "text"),
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
-        assert new_table_info == [
-            (0, "id", "INTEGER", 0, None, 1),
-            (1, "info", "TEXT", 0, None, 0),
-            (2, "new_col", "TEXT", 0, None, 0),
-        ]
+        assert new_table_info == []
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "data", "TEXT", 0, None, 0),
+            ("id", "integer"),
+            ("data", "text"),
         ]
 
         view2_info = await postgres_backend.table_info("view2")
         assert view2_info == [
-            (0, "id", "INTEGER", 0, None, 0),
-            (1, "value", "INTEGER", 0, None, 0),
+            ("id", "integer"),
+            ("value", "integer"),
         ]

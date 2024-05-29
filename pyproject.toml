@@ -54,7 +54,8 @@ sequence = [
 ignore_fail = "return_non_zero"
 
 [tool.poe.tasks.integration.env]
-TEST_PG_CONNECTION_STRING = "postgresql+aiopg://postgres:postgres@localhost:55443/postgres"
+TEST_PG_CONNECTION_STRING = "postgresql+aiopg://postgres:postgres@localhost:55443"
+TEST_PG_MANAGEMENT_DB = "postgres"
 
 
 [build-system]
