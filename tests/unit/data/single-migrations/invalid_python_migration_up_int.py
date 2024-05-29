@@ -1,6 +1,6 @@
-def up():
+def apply():
     return 123
 
 
-def down() -> str | None:
+def undo() -> str | None:
     return "drop table example_table;"

@@ -1,6 +1,6 @@
-def up() -> str:
+def apply() -> str:
     return "create table example_table ( id serial primary key, name text );"
 
 
-def down():
-    return 123
+def undo() -> str | None:
+    return None
