@@ -61,7 +61,7 @@ async def test_postgres_migrations_apply(
         await runner.validate_applied_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
@@ -147,7 +147,7 @@ async def test_postgres_migrations_apply_add_apply(
         }
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
@@ -210,7 +210,7 @@ async def test_postgres_migrations_apply_1(
         await runner.validate_applied_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
         }
@@ -278,7 +278,7 @@ async def test_postgres_migrations_apply_sequence(
         await runner.validate_applied_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert len(list(migrations_table_rows)) == 3
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
@@ -354,7 +354,7 @@ async def test_postgres_migrations_apply_undo_all(
         await runner.validate_applied_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert len(list(migrations_table_rows)) == 0
 
         simple_table_info = await postgres_backend.table_info("simple_table")
@@ -439,7 +439,7 @@ async def test_postgres_migrations_apply_undo_redo(
         await runner.validate_applied_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
@@ -516,7 +516,7 @@ async def test_postgres_migrations_apply_undo_2(
         await runner.validate_applied_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert len(list(migrations_table_rows)) == 1
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
@@ -746,7 +746,7 @@ async def test_postgres_migrations_with_bad_migration(
             await runner.apply_migrations()
 
     async with postgres_backend.connection():
-        migrations_table_rows = await postgres_backend.get_all_rows("_flux_migrations")
+        migrations_table_rows = await postgres_backend.get_all_migration_rows()
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501

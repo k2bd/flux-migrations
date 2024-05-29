@@ -31,6 +31,7 @@ async def test_database() -> AsyncGenerator[str, None]:
 async def postgres_backend(test_database):
     return ExamplePostgresBackend(
         database_url=f"{TEST_PG_CONNECTION_STRING}/{test_database}",
+        migrations_schema="_migrations",
         migrations_table="_flux_migrations",
     )
 

@@ -71,16 +71,6 @@ class ExamplePostgresBackend(MigrationBackend):
                 self._conn = conn
                 yield
 
-    #        self._db = Database(self.database_url)
-    #        await self._db.connect()
-    #        async with self._db.transaction() as tx:
-    #            self._tx = tx
-    #            self._conn = self._db.connection()
-    #            try:
-    #                yield
-    #            finally:
-    #                await self._db.disconnect()
-
     @asynccontextmanager
     async def transaction(self):
         """
@@ -94,14 +84,6 @@ class ExamplePostgresBackend(MigrationBackend):
         """
         async with self._conn.transaction():
             yield
-        # self._tx = self._conn.transaction()
-        # try:
-        #    yield
-        # except Exception:
-        #    await self._tx.rollback()
-        #    raise
-        # else:
-        #    await self._tx.commit()
 
     @asynccontextmanager
     async def migration_lock(self):
@@ -156,6 +138,11 @@ class ExamplePostgresBackend(MigrationBackend):
         Initialize the backend by creating any necessary tables etc in the
         database.
         """
+        await self._conn.execute(
+            f"""
+            create schema if not exists {self.migrations_schema}
+            """
+        )
         await self._conn.execute(
             f"""
             create table if not exists {self.qualified_migrations_table}
@@ -228,8 +215,10 @@ class ExamplePostgresBackend(MigrationBackend):
         )
         return [(record["column_name"], record["data_type"]) for record in records]
 
-    async def get_all_rows(self, table_name: str):
+    async def get_all_migration_rows(self):
         """
         Get all rows from a table
         """
-        return await self._conn.fetch_all(f"select * from {table_name}")
+        return await self._conn.fetch_all(
+            f"select * from {self.qualified_migrations_table}"
+        )
