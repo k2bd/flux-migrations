@@ -6,6 +6,9 @@ authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
 readme = "README.md"
 packages = [{include = "flux", from = "src"}]
 
+[tool.poetry.scripts]
+flux = "flux.cli:app"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 typer = "^0.12.3"

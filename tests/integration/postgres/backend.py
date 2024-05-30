@@ -33,15 +33,14 @@ class ExamplePostgresBackend(MigrationBackend):
         return f"{self.migrations_schema}.{self.migrations_table}"
 
     @classmethod
-    def from_config(cls, config: FluxConfig) -> "ExamplePostgresBackend":
+    def from_config(
+        cls, config: FluxConfig, connection_uri: str
+    ) -> "ExamplePostgresBackend":
         """
         Create a MigrationBackend from a configuration
 
         This config appears in the config.toml file in the "backend" section.
         """
-        database_url = config.backend_config.get("database_url")
-        if not database_url:
-            raise ValueError("No database_url provided.")
         migrations_table = config.backend_config.get(
             "migrations_table", DEFAULT_MIGRATIONS_TABLE
         )
@@ -54,7 +53,7 @@ class ExamplePostgresBackend(MigrationBackend):
             "migrations_schema", DEFAULT_MIGRATIONS_SCHEMA
         )
         return cls(
-            database_url=database_url,
+            database_url=connection_uri,
             migrations_table=migrations_table,
             migrations_lock_id=migrations_lock_id,
             migrations_schema=migrations_schema,

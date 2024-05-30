@@ -58,7 +58,7 @@ async def test_postgres_migrations_apply(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with postgres_backend.connection():
         migrations_table_rows = await postgres_backend.get_all_migration_rows()
@@ -113,7 +113,7 @@ async def test_postgres_migrations_apply_add_apply(
 
         assert runner.applied_migrations == set()
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
         await runner.apply_migrations()
 
         assert {m.id: m.hash for m in runner.applied_migrations} == {
@@ -122,7 +122,7 @@ async def test_postgres_migrations_apply_add_apply(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     _write_new_migration(example_migrations_dir)
 
@@ -136,7 +136,7 @@ async def test_postgres_migrations_apply_add_apply(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
         await runner.apply_migrations()
 
         assert {m.id: m.hash for m in runner.applied_migrations} == {
@@ -207,7 +207,7 @@ async def test_postgres_migrations_apply_1(
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with postgres_backend.connection():
         migrations_table_rows = await postgres_backend.get_all_migration_rows()
@@ -259,7 +259,7 @@ async def test_postgres_migrations_apply_sequence(
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with FluxRunner(config=config, backend=postgres_backend) as runner:
         initialized = await postgres_backend.is_initialized()
@@ -275,7 +275,7 @@ async def test_postgres_migrations_apply_sequence(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with postgres_backend.connection():
         migrations_table_rows = await postgres_backend.get_all_migration_rows()
@@ -339,7 +339,7 @@ async def test_postgres_migrations_apply_undo_all(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with FluxRunner(config=config, backend=postgres_backend) as runner:
         initialized = await postgres_backend.is_initialized()
@@ -351,7 +351,7 @@ async def test_postgres_migrations_apply_undo_all(
 
         assert len(runner.applied_migrations) == 0
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with postgres_backend.connection():
         migrations_table_rows = await postgres_backend.get_all_migration_rows()
@@ -408,7 +408,7 @@ async def test_postgres_migrations_apply_undo_redo(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with FluxRunner(config=config, backend=postgres_backend) as runner:
         initialized = await postgres_backend.is_initialized()
@@ -420,7 +420,7 @@ async def test_postgres_migrations_apply_undo_redo(
 
         assert len(runner.applied_migrations) == 0
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with FluxRunner(config=config, backend=postgres_backend) as runner:
         initialized = await postgres_backend.is_initialized()
@@ -436,7 +436,7 @@ async def test_postgres_migrations_apply_undo_redo(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with postgres_backend.connection():
         migrations_table_rows = await postgres_backend.get_all_migration_rows()
@@ -499,7 +499,7 @@ async def test_postgres_migrations_apply_undo_2(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with FluxRunner(config=config, backend=postgres_backend) as runner:
         initialized = await postgres_backend.is_initialized()
@@ -513,7 +513,7 @@ async def test_postgres_migrations_apply_undo_2(
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     async with postgres_backend.connection():
         migrations_table_rows = await postgres_backend.get_all_migration_rows()
@@ -583,7 +583,7 @@ async def test_postgres_migrations_corrupted_applied_migration_removed(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     os.remove(os.path.join(example_migrations_dir, file_to_remove))
 
@@ -592,7 +592,7 @@ async def test_postgres_migrations_corrupted_applied_migration_removed(
         assert initialized is True
 
         with pytest.raises(MigrationDirectoryCorruptedError):
-            await runner.validate_applied_migrations()
+            await runner._validate_applied_migrations()
 
 
 async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
@@ -614,7 +614,7 @@ async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     with open(
         os.path.join(example_migrations_dir, "20200101_002_intermediate.sql"), "w"
@@ -626,7 +626,7 @@ async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
         assert initialized is True
 
         with pytest.raises(MigrationDirectoryCorruptedError):
-            await runner.validate_applied_migrations()
+            await runner._validate_applied_migrations()
 
 
 @pytest.mark.parametrize(
@@ -656,7 +656,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     with open(os.path.join(example_migrations_dir, file_to_modify), "a") as f:
         f.write("create table some_new_table ( id serial primary key, name text );")
@@ -666,7 +666,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
         assert initialized is True
 
         with pytest.raises(MigrationDirectoryCorruptedError):
-            await runner.validate_applied_migrations()
+            await runner._validate_applied_migrations()
 
 
 @pytest.mark.parametrize(
@@ -697,7 +697,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_py(
             "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     with open(os.path.join(example_migrations_dir, file_to_modify), "w") as f:
         f.write("def apply():\n    return 'create table a ( id serial primary key );'")
@@ -707,7 +707,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_py(
         assert initialized is True
 
         with pytest.raises(MigrationDirectoryCorruptedError):
-            await runner.validate_applied_migrations()
+            await runner._validate_applied_migrations()
 
 
 async def test_postgres_migrations_with_bad_migration(
@@ -722,7 +722,7 @@ async def test_postgres_migrations_with_bad_migration(
 
         assert runner.applied_migrations == set()
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
         await runner.apply_migrations(2)
 
         assert {m.id: m.hash for m in runner.applied_migrations} == {
@@ -730,7 +730,7 @@ async def test_postgres_migrations_with_bad_migration(
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
         }
 
-        await runner.validate_applied_migrations()
+        await runner._validate_applied_migrations()
 
     _write_new_bad_migration(example_migrations_dir)
 

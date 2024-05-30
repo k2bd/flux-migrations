@@ -14,12 +14,14 @@ def example_config(
     backend: str,
     migration_directory: str,
     log_level: str = "DEBUG",
+    apply_repeatable_on_down: bool = False,
     backend_config: dict | None = None,
 ):
     return FluxConfig(
         backend=backend,
         migration_directory=migration_directory,
         log_level=log_level,
+        apply_repeatable_on_down=apply_repeatable_on_down,
         backend_config=backend_config or {},
     )
 

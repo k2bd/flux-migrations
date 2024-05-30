@@ -1,8 +1,9 @@
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
-from typing import Any
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
+from flux.backend.get_backends import get_backend
 from flux.config import FluxConfig
 from flux.exceptions import MigrationApplyError, MigrationDirectoryCorruptedError
 from flux.migration.migration import Migration
@@ -25,9 +26,7 @@ class FluxRunner:
 
     backend: MigrationBackend
 
-    _conn_ctx: Any = field(init=False)
-    _tx_ctx: Any = field(init=False)
-    _lock_ctx: Any = field(init=False)
+    _exit_stack: AsyncExitStack = field(init=False)
 
     pre_apply_migrations: list[Migration] = field(init=False)
     migrations: list[Migration] = field(init=False)
@@ -35,14 +34,19 @@ class FluxRunner:
 
     applied_migrations: set[AppliedMigration] = field(init=False)
 
-    async def __aenter__(self):
-        self._conn_ctx = self.backend.connection()
-        self._lock_ctx = self.backend.migration_lock()
-        self._tx_ctx = self.backend.transaction()
+    @classmethod
+    def from_file(cls, path: str, connection_uri: str) -> "FluxRunner":
+        config = FluxConfig.from_file(path)
+        backend = get_backend(config.backend).from_config(config, connection_uri)
+        return cls(config=config, backend=backend)
 
-        await self._conn_ctx.__aenter__()
-        await self._lock_ctx.__aenter__()
-        await self._tx_ctx.__aenter__()
+    async def __aenter__(self):
+        self._exit_stack = AsyncExitStack()
+        await self._exit_stack.__aenter__()
+
+        await self._exit_stack.enter_async_context(self.backend.connection())
+        await self._exit_stack.enter_async_context(self.backend.migration_lock())
+        await self._exit_stack.enter_async_context(self.backend.transaction())
 
         if not await self.backend.is_initialized():
             await self.backend.initialize()
@@ -56,11 +60,9 @@ class FluxRunner:
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
-        await self._tx_ctx.__aexit__(exc_type, exc, tb)
-        await self._lock_ctx.__aexit__(exc_type, exc, tb)
-        await self._conn_ctx.__aexit__(exc_type, exc, tb)
+        await self._exit_stack.__aexit__(exc_type, exc, tb)
 
-    async def validate_applied_migrations(self):
+    async def _validate_applied_migrations(self):
         """
         Confirms the following for applied migrations:
         - There is no discontinuity in the applied migrations
@@ -91,17 +93,7 @@ class FluxRunner:
                     f"Migration {migration.id} has changed since it was applied"
                 )
 
-    async def apply_migrations(self, n: int | None = None):
-        """
-        Apply unapplied migrations to the database
-        """
-        unapplied_migrations = [
-            m
-            for m in self.migrations
-            if m.id not in {m.id for m in self.applied_migrations}
-        ]
-        migrations_to_apply = unapplied_migrations[:n]
-
+    async def _apply_pre_apply_migrations(self):
         for migration in self.pre_apply_migrations:
             try:
                 await self.backend.apply_migration(migration.up)
@@ -109,6 +101,46 @@ class FluxRunner:
                 raise MigrationApplyError(
                     f"Failed to apply pre-apply migration {migration.id}"
                 ) from e
+
+    async def _apply_post_apply_migrations(self):
+        for migration in self.post_apply_migrations:
+            try:
+                await self.backend.apply_migration(migration.up)
+            except Exception as e:
+                raise MigrationApplyError(
+                    f"Failed to apply post-apply migration {migration.id}"
+                ) from e
+
+    def list_applied_migrations(self) -> list[Migration]:
+        """
+        List applied migrations
+        """
+        return [
+            m
+            for m in self.migrations
+            if m.id in {m.id for m in self.applied_migrations}
+        ]
+
+    def list_unapplied_migrations(self) -> list[Migration]:
+        """
+        List unapplied migrations
+        """
+        return [
+            m
+            for m in self.migrations
+            if m.id not in {m.id for m in self.applied_migrations}
+        ]
+
+    async def apply_migrations(self, n: int | None = None):
+        """
+        Apply unapplied migrations to the database
+        """
+        await self._validate_applied_migrations()
+
+        unapplied_migrations = self.list_unapplied_migrations()
+        migrations_to_apply = unapplied_migrations[:n]
+
+        await self._apply_pre_apply_migrations()
 
         for migration in migrations_to_apply:
             if migration.id in {m.id for m in self.applied_migrations}:
@@ -122,25 +154,21 @@ class FluxRunner:
                     f"Failed to apply migration {migration.id}"
                 ) from e
 
-        for migration in self.post_apply_migrations:
-            try:
-                await self.backend.apply_migration(migration.up)
-            except Exception as e:
-                raise MigrationApplyError(
-                    f"Failed to apply post-apply migration {migration.id}"
-                ) from e
+        await self._apply_post_apply_migrations()
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
     async def rollback_migrations(self, n: int | None = None):
         """
-        Rollback the last n applied migrations
+        Rollback applied migrations from the database, applying any undo
+        migrations if they exist.
         """
-        applied_migrations = [
-            m
-            for m in self.migrations
-            if m.id in {m.id for m in self.applied_migrations}
-        ]
+        await self._validate_applied_migrations()
+
+        if self.config.apply_repeatable_on_down:
+            await self._apply_pre_apply_migrations()
+
+        applied_migrations = self.list_applied_migrations()
         migrations_to_rollback = (
             applied_migrations[-n:] if n is not None else applied_migrations
         )
@@ -155,5 +183,8 @@ class FluxRunner:
                 raise MigrationApplyError(
                     f"Failed to rollback migration {migration.id}"
                 ) from e
+
+        if self.config.apply_repeatable_on_down:
+            await self._apply_post_apply_migrations()
 
         self.applied_migrations = await self.backend.get_applied_migrations()
