@@ -62,7 +62,7 @@ class FluxRunner:
     async def __aexit__(self, exc_type, exc, tb):
         await self._exit_stack.__aexit__(exc_type, exc, tb)
 
-    async def _validate_applied_migrations(self):
+    async def validate_applied_migrations(self):
         """
         Confirms the following for applied migrations:
         - There is no discontinuity in the applied migrations
@@ -135,7 +135,7 @@ class FluxRunner:
         """
         Apply unapplied migrations to the database
         """
-        await self._validate_applied_migrations()
+        await self.validate_applied_migrations()
 
         unapplied_migrations = self.list_unapplied_migrations()
         migrations_to_apply = unapplied_migrations[:n]
@@ -163,7 +163,7 @@ class FluxRunner:
         Rollback applied migrations from the database, applying any undo
         migrations if they exist.
         """
-        await self._validate_applied_migrations()
+        await self.validate_applied_migrations()
 
         if self.config.apply_repeatable_on_down:
             await self._apply_pre_apply_migrations()
