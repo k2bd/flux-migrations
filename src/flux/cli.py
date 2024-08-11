@@ -279,4 +279,6 @@ def rollback(
     ] = None,
     auto_approve: bool = False,
 ):
-    asyncio_run(_rollback(ctx, connection_uri=connection_uri, n=n))
+    asyncio_run(
+        _rollback(ctx, connection_uri=connection_uri, n=n, auto_approve=auto_approve)
+    )
