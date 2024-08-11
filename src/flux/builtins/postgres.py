@@ -2,8 +2,13 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
-from databases import Database
-from databases.core import Connection, Transaction
+try:
+    from databases import Database
+    from databases.core import Connection, Transaction
+except ImportError as e:
+    raise ImportError(
+        "Please install the postgres dependency group of flux-migrations to use the builtin Postgres backend. For example: pip install 'flux-migrations[postgres]'"  # noqa: E501
+    ) from e
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
@@ -18,7 +23,7 @@ DEFAULT_MIGRATIONS_LOCK_ID = 3589
 
 
 @dataclass
-class ExamplePostgresBackend(MigrationBackend):
+class FluxPostgresBackend(MigrationBackend):
     database_url: str
     migrations_table: str = DEFAULT_MIGRATIONS_TABLE
     migrations_schema: str = DEFAULT_MIGRATIONS_SCHEMA
@@ -35,7 +40,7 @@ class ExamplePostgresBackend(MigrationBackend):
     @classmethod
     def from_config(
         cls, config: FluxConfig, connection_uri: str
-    ) -> "ExamplePostgresBackend":
+    ) -> "FluxPostgresBackend":
         """
         Create a MigrationBackend from a configuration
 

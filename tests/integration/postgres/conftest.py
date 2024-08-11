@@ -11,8 +11,8 @@ import pytest
 from databases import Database
 
 from flux.backend.get_backends import __name__ as GET_BACKENDS_NAME
+from flux.builtins.postgres import FluxPostgresBackend
 from flux.constants import FLUX_BACKEND_PLUGIN_GROUP
-from tests.integration.postgres.backend import ExamplePostgresBackend
 from tests.integration.postgres.constants import (
     MIGRATIONS_1_DIR,
     TEST_PG_CONNECTION_STRING,
@@ -33,7 +33,7 @@ async def test_database() -> AsyncGenerator[str, None]:
 
 @pytest.fixture
 async def postgres_backend(test_database):
-    return ExamplePostgresBackend(
+    return FluxPostgresBackend(
         database_url=f"{TEST_PG_CONNECTION_STRING}/{test_database}",
         migrations_schema="_migrations",
         migrations_table="_flux_migrations",
@@ -59,7 +59,7 @@ def mock_installed_postgres_backend():
             EntryPoint(
                 name="postgres",
                 group=FLUX_BACKEND_PLUGIN_GROUP,
-                value="tests.integration.postgres.backend:ExamplePostgresBackend",
+                value="flux.builtins.postgres:FluxPostgresBackend",
             )
         ]
         if group != FLUX_BACKEND_PLUGIN_GROUP:
