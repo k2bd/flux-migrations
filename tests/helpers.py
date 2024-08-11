@@ -1,6 +1,7 @@
 import asyncio
 import datetime as dt
-from contextlib import asynccontextmanager
+import os
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 
 from flux.backend.applied_migration import AppliedMigration
@@ -133,3 +134,17 @@ class InvalidBackend:
     An empty class. Not a valid backend as it does not subclass
     ``MigrationBackend``.
     """
+
+
+@contextmanager
+def change_cwd(to_dir: str):
+    """
+    Change the current working directory temporarily.
+
+    N.B. changes back to the current value on exit.
+    """
+    original_cwd = os.getcwd()
+    try:
+        yield os.chdir(to_dir)
+    finally:
+        os.chdir(original_cwd)

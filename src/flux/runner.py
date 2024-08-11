@@ -131,14 +131,17 @@ class FluxRunner:
             if m.id not in {m.id for m in self.applied_migrations}
         ]
 
+    def migrations_to_apply(self, n: int | None = None):
+        unapplied_migrations = self.list_unapplied_migrations()
+        return unapplied_migrations[:n]
+
     async def apply_migrations(self, n: int | None = None):
         """
         Apply unapplied migrations to the database
         """
         await self.validate_applied_migrations()
 
-        unapplied_migrations = self.list_unapplied_migrations()
-        migrations_to_apply = unapplied_migrations[:n]
+        migrations_to_apply = self.migrations_to_apply(n=n)
 
         await self._apply_pre_apply_migrations()
 
@@ -158,6 +161,13 @@ class FluxRunner:
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
+    def migrations_to_rollback(self, n: int | None = None):
+        applied_migrations = self.list_applied_migrations()
+        migrations_to_rollback = (
+            applied_migrations[-n:] if n is not None else applied_migrations
+        )
+        return migrations_to_rollback[::-1]
+
     async def rollback_migrations(self, n: int | None = None):
         """
         Rollback applied migrations from the database, applying any undo
@@ -168,11 +178,7 @@ class FluxRunner:
         if self.config.apply_repeatable_on_down:
             await self._apply_pre_apply_migrations()
 
-        applied_migrations = self.list_applied_migrations()
-        migrations_to_rollback = (
-            applied_migrations[-n:] if n is not None else applied_migrations
-        )
-        migrations_to_rollback = migrations_to_rollback[::-1]
+        migrations_to_rollback = self.migrations_to_rollback(n=n)
 
         for migration in migrations_to_rollback:
             try:
