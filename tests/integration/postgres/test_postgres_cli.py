@@ -6,7 +6,9 @@ from flux.cli import app
 from tests.helpers import change_cwd
 
 
-def test_cli_init(example_migrations_dir: str, mock_installed_postgres_backend):
+def test_cli_init(
+    example_migrations_dir: str,
+):
     with change_cwd(example_migrations_dir):
         runner = CliRunner()
         result = runner.invoke(app, ["init", "postgres"])
@@ -30,7 +32,7 @@ migration_directory = "migrations"
 
 
 def test_cli_init_twice_errors(
-    example_migrations_dir: str, mock_installed_postgres_backend
+    example_migrations_dir: str,
 ):
     with change_cwd(example_migrations_dir):
         runner = CliRunner()
@@ -42,7 +44,7 @@ def test_cli_init_twice_errors(
 
 
 def test_cli_init_bad_backend(
-    example_migrations_dir: str, mock_installed_postgres_backend
+    example_migrations_dir: str,
 ):
     with change_cwd(example_migrations_dir):
         runner = CliRunner()

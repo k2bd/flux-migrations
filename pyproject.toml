@@ -9,8 +9,8 @@ packages = [{include = "flux", from = "src"}]
 [tool.poetry.scripts]
 flux = "flux.cli:app"
 
-[project.entry-points."flux.backends"]
-postgres = "flux_migrations.builtins.postgres:FluxPostgresBackend"
+[tool.poetry.plugins."flux.backend"]
+postgres = "flux.builtins.postgres:FluxPostgresBackend"
 
 [tool.poetry.dependencies]
 python = "^3.10"
