@@ -1,7 +1,6 @@
 # Flux Migrations
 
 [![codecov](https://codecov.io/gh/k2bd/flux-migrations/graph/badge.svg?token=PJF3cYLtZh)](https://codecov.io/gh/k2bd/flux-migrations)
-[![Discord](https://img.shields.io/discord/1238849973123154001?logo=discord&label=discord)](https://discord.gg/TnwbPx7QkT)
 
 `flux` is a database migration tool written in Python and built with Python projects in mind.
 
