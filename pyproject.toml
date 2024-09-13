@@ -6,10 +6,18 @@ authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
 readme = "README.md"
 packages = [{include = "flux", from = "src"}]
 
+[tool.poetry.scripts]
+flux = "flux.cli:app"
+
+[tool.poetry.plugins."flux.backend"]
+postgres = "flux.builtins.postgres:FluxPostgresBackend"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 typer = "^0.12.3"
 toml = "^0.10.2"
+aiopg = { version = "^1.4.0", optional = true }
+databases = { version = "^0.9.0", optional = true }
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
@@ -20,8 +28,10 @@ poethepoet = "^0.26.1"
 pytest = "^8.2.0"
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.6"
-aiopg = "^1.4.0"
-databases = "^0.9.0"
+
+[tool.poetry.extras]
+postgres = ["aiopg", "databases"]
+
 
 [tool.isort]
 profile = "black"
