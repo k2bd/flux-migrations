@@ -2,9 +2,9 @@ import os
 
 import pytest
 
+from flux.builtins.postgres import FluxPostgresBackend
 from flux.exceptions import MigrationApplyError, MigrationDirectoryCorruptedError
 from flux.runner import FluxRunner
-from tests.integration.postgres.backend import ExamplePostgresBackend
 from tests.integration.postgres.helpers import postgres_config
 
 
@@ -39,7 +39,7 @@ def _write_new_bad_migration(migrations_dir: str):
 
 
 async def test_postgres_migrations_apply(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -102,7 +102,7 @@ async def test_postgres_migrations_apply(
 
 
 async def test_postgres_migrations_apply_add_apply(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -190,7 +190,7 @@ async def test_postgres_migrations_apply_add_apply(
 
 
 async def test_postgres_migrations_apply_1(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -242,7 +242,7 @@ async def test_postgres_migrations_apply_1(
 
 
 async def test_postgres_migrations_apply_sequence(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -320,7 +320,7 @@ async def test_postgres_migrations_apply_sequence(
 
 
 async def test_postgres_migrations_apply_undo_all(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -389,7 +389,7 @@ async def test_postgres_migrations_apply_undo_all(
 
 
 async def test_postgres_migrations_apply_undo_redo(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -480,7 +480,7 @@ async def test_postgres_migrations_apply_undo_redo(
 
 
 async def test_postgres_migrations_apply_undo_2(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -563,7 +563,7 @@ async def test_postgres_migrations_apply_undo_2(
     ],
 )
 async def test_postgres_migrations_corrupted_applied_migration_removed(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
     file_to_remove: str,
 ):
@@ -596,7 +596,7 @@ async def test_postgres_migrations_corrupted_applied_migration_removed(
 
 
 async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)
@@ -636,7 +636,7 @@ async def test_postgres_migrations_corrupted_migration_inserted_between_applied(
     ],
 )
 async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
     file_to_modify: str,
 ):
@@ -677,7 +677,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_sql(
     ],
 )
 async def test_postgres_migrations_corrupted_applied_migration_modified_py(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
     file_to_modify: str,
 ):
@@ -711,7 +711,7 @@ async def test_postgres_migrations_corrupted_applied_migration_modified_py(
 
 
 async def test_postgres_migrations_with_bad_migration(
-    postgres_backend: ExamplePostgresBackend,
+    postgres_backend: FluxPostgresBackend,
     example_migrations_dir: str,
 ):
     config = postgres_config(migration_directory=example_migrations_dir)

@@ -8,7 +8,7 @@ from typing import AsyncGenerator, Generator
 import pytest
 from databases import Database
 
-from tests.integration.postgres.backend import ExamplePostgresBackend
+from flux.builtins.postgres import FluxPostgresBackend
 from tests.integration.postgres.constants import (
     MIGRATIONS_1_DIR,
     TEST_PG_CONNECTION_STRING,
@@ -29,7 +29,7 @@ async def test_database() -> AsyncGenerator[str, None]:
 
 @pytest.fixture
 async def postgres_backend(test_database):
-    return ExamplePostgresBackend(
+    return FluxPostgresBackend(
         database_url=f"{TEST_PG_CONNECTION_STRING}/{test_database}",
         migrations_schema="_migrations",
         migrations_table="_flux_migrations",

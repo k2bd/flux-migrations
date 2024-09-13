@@ -33,12 +33,12 @@ Backends are loaded as plugins through Python's entry point system.
 This means that you can add a new backend by simply installing a package that provides the backend as a plugin.
 
 To create a new backend in your package, you need to subclass ``flux.MigrationBackend`` and implement its abstract methods.
-Then register that class under the ``flux.backends`` entry point group in your package setup.
+Then register that class under the ``flux.backend`` entry point group in your package setup.
 
 For example, in ``pyproject.toml``:
     
 ```toml
-[project.entry-points."flux.backends"]
+[project.entry-points."flux.backend"]
 cooldb = "my_package.my_module:CoolDbBackend"
 ```
 

@@ -9,7 +9,7 @@ from flux.migration.migration import Migration
 class MigrationBackend(ABC):
 
     @classmethod
-    def from_config(cls, config: FluxConfig) -> "MigrationBackend":
+    def from_config(cls, config: FluxConfig, connection_uri: str) -> "MigrationBackend":
         """
         Create a MigrationBackend from a configuration
 
@@ -28,6 +28,18 @@ class MigrationBackend(ABC):
 
     @asynccontextmanager
     @abstractmethod
+    async def migration_lock(self):
+        """
+        Create a lock that prevents other migration processes from running
+        concurrently.
+
+        This lock should last as long as the context manager and should operate
+        will be within ``connection`` but outside of ``transaction``.
+        """
+        yield
+
+    @asynccontextmanager
+    @abstractmethod
     async def transaction(self):
         """
         Create a transaction that lasts as long as the context manager is
@@ -37,20 +49,6 @@ class MigrationBackend(ABC):
 
         If an exception is raised inside the context manager, the transaction
         is rolled back.
-        """
-        yield
-
-    @asynccontextmanager
-    @abstractmethod
-    async def migration_lock(self):
-        """
-        Create a lock that prevents other migration processes from running
-        concurrently.
-
-        The acceptable unlock conditions are:
-        - The context manager exits
-        - The transaction ends
-        - The connection ends
         """
         yield
 

@@ -2,8 +2,13 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
-from databases import Database
-from databases.core import Connection, Transaction
+try:
+    from databases import Database
+    from databases.core import Connection, Transaction
+except ImportError as e:
+    raise ImportError(
+        "Please install the postgres dependency group of flux-migrations to use the builtin Postgres backend. For example: pip install 'flux-migrations[postgres]'"  # noqa: E501
+    ) from e
 
 from flux.backend.applied_migration import AppliedMigration
 from flux.backend.base import MigrationBackend
@@ -18,7 +23,7 @@ DEFAULT_MIGRATIONS_LOCK_ID = 3589
 
 
 @dataclass
-class ExamplePostgresBackend(MigrationBackend):
+class FluxPostgresBackend(MigrationBackend):
     database_url: str
     migrations_table: str = DEFAULT_MIGRATIONS_TABLE
     migrations_schema: str = DEFAULT_MIGRATIONS_SCHEMA
@@ -33,15 +38,14 @@ class ExamplePostgresBackend(MigrationBackend):
         return f"{self.migrations_schema}.{self.migrations_table}"
 
     @classmethod
-    def from_config(cls, config: FluxConfig) -> "ExamplePostgresBackend":
+    def from_config(
+        cls, config: FluxConfig, connection_uri: str
+    ) -> "FluxPostgresBackend":
         """
         Create a MigrationBackend from a configuration
 
         This config appears in the config.toml file in the "backend" section.
         """
-        database_url = config.backend_config.get("database_url")
-        if not database_url:
-            raise ValueError("No database_url provided.")
         migrations_table = config.backend_config.get(
             "migrations_table", DEFAULT_MIGRATIONS_TABLE
         )
@@ -54,7 +58,7 @@ class ExamplePostgresBackend(MigrationBackend):
             "migrations_schema", DEFAULT_MIGRATIONS_SCHEMA
         )
         return cls(
-            database_url=database_url,
+            database_url=connection_uri,
             migrations_table=migrations_table,
             migrations_lock_id=migrations_lock_id,
             migrations_schema=migrations_schema,
