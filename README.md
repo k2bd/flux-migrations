@@ -1,6 +1,9 @@
 # Flux Migrations
 
 [![codecov](https://codecov.io/gh/k2bd/flux-migrations/graph/badge.svg?token=PJF3cYLtZh)](https://codecov.io/gh/k2bd/flux-migrations)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flux-migrations)
+[![PyPI - Version](https://img.shields.io/pypi/v/flux-migrations)](https://pypi.org/project/flux-migrations/)
+
 
 `flux` is a database migration tool written in Python and built with Python projects in mind.
 
@@ -47,15 +50,17 @@ This can be particularly useful for testing.
 
 #### Postgres
 
-``flux`` comes packages with a Postgres backend. It maintains information about migrations in a configurable schema and table. Additionally, it uses an advisory lock while migrations are being applied with a configurable index. The available ``[backend]`` configs are:
+``flux`` comes packaged with a Postgres backend. It maintains information about migrations in a configurable schema and table. Additionally, it uses an advisory lock while migrations are being applied with a configurable index. The available ``[backend]`` configs are:
 
 - ``migrations_schema``
     - The schema in which to put the migration history table
     - (default "public")
-- ``migrations_table`` (default "_flux_migrations")
+- ``migrations_table``
     - The table used for applied migration history
-- ``migrations_lock_id`` (default 3589 ('flux' on a phone keypad))
+    - (default "_flux_migrations")
+- ``migrations_lock_id``
     - The ``pg_advisory_lock`` ID to use while applying migrations
+    - (default 3589 ('flux' on a phone keypad))
 
 ### Adding a new backend
 
