@@ -105,6 +105,8 @@ async def _new(ctx: typer.Context, name: str, kind: MigrationKind):
         print("Please run `flux init` to create a configuration file")
         raise typer.Exit(code=1)
 
+    os.makedirs(config.migration_directory, exist_ok=True)
+
     date_part = dt.date.today().strftime("%Y%d%m")
     migration_index = 1
 
