@@ -6,11 +6,31 @@
 
 ## N.B. this project is in a pre-release state. There may be breaking changes to all aspects of the tool while some decisions are being made and changed. It is not recommended for use in real projects until the v1.0.0 release. See (TODO milestone) for more info.
 
-## Running `flux`
+## Adding `flux` to your project
 
 ### CLI
 
+``flux`` can be installed for now from Github. For example:
+
+```
+poetry add git+https://github.com/k2bd/flux-migrations.git[postgres]
+```
+
+The project will be properly maintained on PyPI when it's stable. The PyPI version may therefore not be up-to-date at this time.
+
+``flux`` commands can then be listed with ``flux --help``
+
+For example, migrations can be initialized and started with:
+
+```
+flux init postgres
+
+flux new "Initial migration"
+```
+
 ### Docker
+
+(TODO)
 
 ## Writing migrations
 
@@ -25,7 +45,17 @@ This can be particularly useful for testing.
 
 ### Inbuilt backends
 
-(TODO)
+#### Postgres
+
+``flux`` comes packages with a Postgres backend. It maintains information about migrations in a configurable schema and table. Additionally, it uses an advisory lock while migrations are being applied with a configurable index. The available ``[backend]`` configs are:
+
+- ``migrations_schema``
+    - The schema in which to put the migration history table
+    - (default "public")
+- ``migrations_table`` (default "_flux_migrations")
+    - The table used for applied migration history
+- ``migrations_lock_id`` (default 3589 ('flux' on a phone keypad))
+    - The ``pg_advisory_lock`` ID to use while applying migrations
 
 ### Adding a new backend
 
