@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flux-migrations"
-version = "0.0.1"
+version = "0.0.2a0"
 description = ""
 authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
 readme = "README.md"
