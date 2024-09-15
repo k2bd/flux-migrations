@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flux-migrations"
-version = "0.0.2"
+version = "0.0.3a0"
 packages = [{include = "flux", from = "src"}]
 
 readme = "README.md"
