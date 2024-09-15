@@ -1,10 +1,31 @@
 [tool.poetry]
 name = "flux-migrations"
 version = "0.0.2a0"
-description = ""
-authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
-readme = "README.md"
 packages = [{include = "flux", from = "src"}]
+
+readme = "README.md"
+description = "A database migration tool that works well with Python projects"
+authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/k2bd/flux-migrations"
+repository = "https://github.com/k2bd/flux-migrations"
+classifiers = [
+    "Operating System :: OS Independent",
+    "Development Status :: 1 - Planning",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Database",
+]
+include = [
+    "LICENSE",
+]
 
 [tool.poetry.scripts]
 flux = "flux.cli:app"
