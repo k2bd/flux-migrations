@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Database",
 ]
 include = [
-    "LICENSE",
+    "LICENSE.md",
 ]
 
 [tool.poetry.scripts]
