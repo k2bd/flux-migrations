@@ -16,7 +16,7 @@
 ``flux`` can be installed for now from Github. For example:
 
 ```
-poetry add git+https://github.com/k2bd/flux-migrations.git[postgres]
+poetry add "git+https://github.com/k2bd/flux-migrations.git[postgres]"
 ```
 
 The project will be properly maintained on PyPI when it's stable. The PyPI version may therefore not be up-to-date at this time.
