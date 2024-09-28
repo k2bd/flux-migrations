@@ -7,6 +7,7 @@ from typing import Optional
 
 import typer
 from rich import print
+from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from typing_extensions import Annotated
@@ -187,6 +188,9 @@ async def _print_apply_report(runner: FluxRunner, n: int | None):
         )
         table.add_row(migration.id, status)
 
+    console = Console()
+    console.print(table)
+
 
 async def _print_rollback_report(runner: FluxRunner, n: int | None):
     table = Table("Rollback Migrations")
@@ -205,6 +209,9 @@ async def _print_rollback_report(runner: FluxRunner, n: int | None):
 
     for migration in runner.list_unapplied_migrations():
         table.add_row(migration.id, NOT_APPLIED_STATUS)
+
+    console = Console()
+    console.print(table)
 
 
 async def _apply(
