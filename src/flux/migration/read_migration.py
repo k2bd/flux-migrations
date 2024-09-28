@@ -1,3 +1,4 @@
+import logging
 import os
 
 from flux.config import FluxConfig
@@ -5,6 +6,8 @@ from flux.constants import POST_APPLY_DIRECTORY, PRE_APPLY_DIRECTORY
 from flux.exceptions import MigrationLoadingError
 from flux.migration.migration import Migration
 from flux.migration.temporary_module import temporary_module
+
+logger = logging.getLogger(__name__)
 
 
 def read_migrations(*, config: FluxConfig) -> list[Migration]:
@@ -39,6 +42,9 @@ def _read_repeatable_migrations(
     """
     migrations = []
     migrations_dir = os.path.join(config.migration_directory, migration_subdir)
+    if not os.path.exists(migrations_dir):
+        logger.warning(f"No repeatable migrations directory {migrations_dir!r}")
+        return []
     for migration_file in os.listdir(migrations_dir):
         if migration_file.endswith(".sql"):
             migration_id = migration_file[:-4]
