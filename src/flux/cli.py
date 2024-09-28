@@ -171,7 +171,7 @@ def new(
 
 
 async def _print_apply_report(runner: FluxRunner, n: int | None):
-    table = Table("Apply Migrations")
+    table = Table(title="Apply Migrations")
     table.add_column("ID")
     table.add_column("Status")
 
@@ -193,7 +193,7 @@ async def _print_apply_report(runner: FluxRunner, n: int | None):
 
 
 async def _print_rollback_report(runner: FluxRunner, n: int | None):
-    table = Table("Rollback Migrations")
+    table = Table(title="Rollback Migrations")
     table.add_column("ID")
     table.add_column("Status")
 
