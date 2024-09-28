@@ -218,7 +218,7 @@ async def _apply(
         print("Please run `flux init` to create a configuration file")
         raise typer.Exit(code=1)
     async with FluxRunner.from_file(
-        path=config.migration_directory,
+        path=FLUX_CONFIG_FILE,
         connection_uri=connection_uri,
     ) as runner:
         await _print_apply_report(runner=runner, n=n)
@@ -257,7 +257,7 @@ async def _rollback(
         print("Please run `flux init` to create a configuration file")
         raise typer.Exit(code=1)
     async with FluxRunner.from_file(
-        path=config.migration_directory,
+        path=FLUX_CONFIG_FILE,
         connection_uri=connection_uri,
     ) as runner:
         await _print_rollback_report(runner=runner, n=n)
