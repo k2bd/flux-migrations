@@ -223,7 +223,8 @@ async def _apply(
     ) as runner:
         await _print_apply_report(runner=runner, n=n)
         if not auto_approve:
-            Confirm("Apply these migrations?")
+            if not Confirm("Apply these migrations?"):
+                raise typer.Exit(1)
         await runner.apply_migrations(n=n)
 
 
@@ -262,7 +263,8 @@ async def _rollback(
     ) as runner:
         await _print_rollback_report(runner=runner, n=n)
         if not auto_approve:
-            Confirm("Undo these migrations?")
+            if not Confirm("Undo these migrations?"):
+                raise typer.Exit(1)
 
         await runner.rollback_migrations(n=n)
 
