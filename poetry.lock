@@ -871,6 +871,21 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
+name = "sqlparse"
+version = "0.5.1"
+description = "A non-validating SQL parser."
+optional = true
+python-versions = ">=3.8"
+files = [
+    {file = "sqlparse-0.5.1-py3-none-any.whl", hash = "sha256:773dcbf9a5ab44a090f3441e2180efe2560220203dc2f8c0b0fa141e18b505e4"},
+    {file = "sqlparse-0.5.1.tar.gz", hash = "sha256:bb6b4df465655ef332548e24f08e205afc81b9ab86cb1c45657a7ff173a3a00e"},
+]
+
+[package.extras]
+dev = ["build", "hatch"]
+doc = ["sphinx"]
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -921,9 +936,9 @@ files = [
 ]
 
 [extras]
-postgres = ["aiopg", "asyncpg", "databases"]
+postgres = ["aiopg", "asyncpg", "databases", "sqlparse"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "060678cc815933598cdb0c622e7b96098ca23a7582f86c2ea35ee4caeda82e5c"
+content-hash = "65d81c250abdd335acf269c68ca92b4230b7e581dfe7476a384a0ffec3c0d03e"

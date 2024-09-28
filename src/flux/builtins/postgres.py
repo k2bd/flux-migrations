@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
 try:
+    import sqlparse
     from databases import Database
     from databases.core import Connection, Transaction
 except ImportError as e:
@@ -193,7 +194,9 @@ class FluxPostgresBackend(MigrationBackend):
         up and down migrations so should not register or unregister the
         migration hash.
         """
-        await self._conn.execute(content)
+        statements = sqlparse.split(content)
+        for statement in statements:
+            await self._conn.execute(statement.strip())
 
     async def get_applied_migrations(self) -> set[AppliedMigration]:
         """
