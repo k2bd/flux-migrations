@@ -7,7 +7,7 @@
 
 `flux` is a database migration tool written in Python and built with Python projects in mind.
 
-## N.B. this project is in a pre-release state. There may be breaking changes to all aspects of the tool while some decisions are being made and changed. It is not recommended for use in real projects until the v1.0.0 release. See (TODO milestone) for more info.
+## N.B. this project is in a pre-release state. It is not ready for use in any form. There may be breaking changes to all aspects of the tool while some decisions are being made and changed.
 
 ## Adding `flux` to your project
 
