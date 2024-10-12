@@ -43,7 +43,7 @@ def _read_repeatable_migrations(
     migrations = []
     migrations_dir = os.path.join(config.migration_directory, migration_subdir)
     if not os.path.exists(migrations_dir):
-        logger.warning(f"No repeatable migrations directory {migrations_dir!r}")
+        logger.info(f"No repeatable migrations directory {migrations_dir!r}")
         return []
     for migration_file in os.listdir(migrations_dir):
         if migration_file.endswith(".sql"):
