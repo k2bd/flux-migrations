@@ -31,20 +31,105 @@ flux init postgres
 flux new "Initial migration"
 ```
 
-### Docker
-
-(TODO)
+(TODO: List commands)
 
 ## Writing migrations
+
+There are two forms that migrations can take in ``flux`` - Python files and sql files.
+Both forms define up and optional down migrations.
+
+### Migrations as Python files
+
+By default ``flux`` creates Python migration files when you run ``flux new "My new migration"``.
+
+A migration written as a Python file must contain at minimum a function ``apply() -> str`` which returns a string representing one or multiple sql statements for the migration.
+It can also define a function ``undo() -> str`` that returns a down-migration.
+
+Because these migration files are Python files, you can write reusable tools to help accelerate writing high quality migrations.
+But because these functions must return a string, ``flux`` (along with a good testing and deployment strategy) can ensure that changes to these functions can't corrupt older migrations (see [below](#migration-directory-corruption-detection)).
+A common pattern to work around this, in my experience at least, is to have versioned migration helpers suffixed with `_v1`, `_v2` etc, and each new migration is expected to use the latest version of any given helper.
+
+This means you get the power of modular code when writing migrations *and* the security that resolved migrations remain immutable (even if the file creating the migration imports code from mutable modules).
+
+For example:
+
+```python
+# -- migration_helpers.py
+
+def table_admin_permissions_v1(table_name: str) -> str:
+    return f"""
+    grant select, insert, delete on table {table_name} to admin_user;
+    """
+
+def give_admin_permissions_v2(table_name: str) -> str:
+    return f"""
+    {table_admin_permissions_v1(table_name)}
+    grant select on table {table_name} to read_only_admin_user;
+    """
+```
+
+A migration that was created when only v1 was available:
+
+```python
+# -- 20200202_001_some-old-migration.py
+
+from some_package.migration_helpers import table_admin_permissions_v1
+
+def apply():
+    f"""
+    create table users (
+        id uuid not null default gen_random_uuid(),
+        name text not null
+    );
+    {table_admin_permissions_v1("users")}
+    """
+```
+
+And another created later with v2:
+
+```python
+# -- 20240422_002_shiny-new-migration.py
+
+from some_package.migration_helpers import table_admin_permissions_v2
+
+def apply():
+    f"""
+    create table user_posts (
+        user_id uuid references users (id),
+        posted_at timestamp not null default (now() at time zone 'utc'),
+        content text not null
+    );
+    {table_admin_permissions_v2("user_posts")}
+    """
+```
+
+(These examples only contain apply functions for brevity - as a matter of good practice, undo steps are recommended!)
+
+### Migrations as sql files
+
+It may be that you prefer just writing sql files for your migrations, and you just want ``flux`` for its flexibility or testing functionality.
+That's cool too, just run ``flux new --kind sql "My new migration"``.
+
+Up-migration files are just files ending with ``.sql``. They can have down-migration counterparts ending with ``.undo.sql``.
+
+These files just contain sql, but as above the hash of the up migration is stored for [detecting migration directory corruption](#migration-directory-corruption-detection).
+
+## Migration directory corruption detection
+
+The hash of the up-migration is stored by ``flux`` to check for migration directory corruption.
+That is, the content of past migrations are not allowed to change so the record of applied migrations is clear in all environments.
+If ``flux`` sees that a previously-applied migration has changed content when validating migrations (as a standalone command or as part of e.g. ``apply``), it will raise an error.
 
 ## Use as a library
 
 ``flux`` can be used as a library in your Python project to manage migrations programmatically.
 This can be particularly useful for testing.
 
+(TODO: Demo API)
+
 ## Database backends
 
-``flux`` is a generic migration tool that can be adapted for use in many databases. It does this by having an abstract backend specification that can be implemented for any target database. Backends can also have their own configuration options.
+``flux`` is a generic migration tool that can be adapted for use in many databases. It does this by having an abstract backend specification that can be implemented for any target DBMS. Backends can also have their own configuration options.
 
 ### Inbuilt backends
 
@@ -103,6 +188,4 @@ A non-exhaustive list of this feature-set includes
 
 So, the motivation for this project was to
 - present a more complete feature-set you'd want to find in a migration framework for use with Python projects
-- use design patterns that make it easy to adapt for different kinds of projects, such as 
-  - the plugin-based backend system
-  - the co-maintenance of official Docker images
+- use design patterns that make it easy to adapt for different kinds of projects, such as the plugin-based backend system
