@@ -61,6 +61,7 @@ def table_admin_permissions_v1(table_name: str) -> str:
     grant select, insert, delete on table {table_name} to admin_user;
     """
 
+
 def give_admin_permissions_v2(table_name: str) -> str:
     return f"""
     {table_admin_permissions_v1(table_name)}
@@ -75,10 +76,11 @@ A migration that was created when only v1 was available:
 
 from some_package.migration_helpers import table_admin_permissions_v1
 
+
 def apply():
     f"""
     create table users (
-        id uuid not null default gen_random_uuid(),
+        id uuid not null primary key default gen_random_uuid(),
         name text not null
     );
     {table_admin_permissions_v1("users")}
@@ -92,10 +94,12 @@ And another created later with v2:
 
 from some_package.migration_helpers import table_admin_permissions_v2
 
+
 def apply():
     f"""
     create table user_posts (
-        user_id uuid references users (id),
+        id uuid not null primary key default gen_random_uuid(),
+        user_id uuid not null references users (id),
         posted_at timestamp not null default (now() at time zone 'utc'),
         content text not null
     );
@@ -103,7 +107,7 @@ def apply():
     """
 ```
 
-(These examples only contain apply functions for brevity - as a matter of good practice, undo steps are recommended!)
+(These examples only contain apply functions for brevity - real migrations should have undo steps!)
 
 ### Migrations as sql files
 
