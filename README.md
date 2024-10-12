@@ -21,17 +21,23 @@ poetry add "git+https://github.com/k2bd/flux-migrations.git[postgres]"
 
 The project will be properly maintained on PyPI when it's stable. The PyPI version may therefore not be up-to-date at this time.
 
-``flux`` commands can then be listed with ``flux --help``
+``flux`` commands can then be listed with ``flux --help``.
+Any subcommand can also be suffixed with ``--help`` for more information about it and any options and arguments.
+
+The main commands are:
+
+- ``flux init {backend}`` - Create a ``flux.toml`` file in the current directory for your project with an installed ``{backend}``
+- ``flux new "Migration short description"`` - Create a new migration with the given short description
+- ``flux apply {database-uri}`` Apply unapplied migrations to the target ``{database-uri}``
+- ``flux rollback {database-uri}`` Rollback applied migrations from the target ``{database-uri}``
 
 For example, migrations can be initialized and started with:
 
 ```
 flux init postgres
 
-flux new "Initial migration"
+flux new "Initial tables"
 ```
-
-(TODO: List commands)
 
 ## Writing migrations
 
@@ -45,7 +51,7 @@ By default ``flux`` creates Python migration files when you run ``flux new "My n
 A migration written as a Python file must contain at minimum a function ``apply() -> str`` which returns a string representing one or multiple sql statements for the migration.
 It can also define a function ``undo() -> str`` that returns a down-migration.
 
-Because these migration files are Python files, you can write reusable tools to help accelerate writing high quality migrations.
+Because these migration files are Python files, you can write reusable tools to help accelerate producing high quality migrations.
 But because these functions must return a string, ``flux`` (along with a good testing and deployment strategy) can ensure that changes to these functions can't corrupt older migrations (see [below](#migration-directory-corruption-detection)).
 A common pattern to work around this, in my experience at least, is to have versioned migration helpers suffixed with `_v1`, `_v2` etc, and each new migration is expected to use the latest version of any given helper.
 
@@ -69,7 +75,7 @@ def give_admin_permissions_v2(table_name: str) -> str:
     """
 ```
 
-A migration that was created when only v1 was available:
+A migration that was created when only v1 of our helper was available:
 
 ```python
 # -- 20200202_001_some-old-migration.py
@@ -139,7 +145,7 @@ This can be particularly useful for testing.
 
 #### Postgres
 
-``flux`` comes packaged with a Postgres backend. It maintains information about migrations in a configurable schema and table. Additionally, it uses an advisory lock while migrations are being applied with a configurable index. The available ``[backend]`` configs are:
+``flux`` comes optionally packaged with a Postgres backend if installed with the `postgres` extra. It maintains information about migrations in a configurable schema and table. Additionally, it uses an advisory lock while migrations are being applied with a configurable index. The available ``[backend]`` configs are:
 
 - ``migrations_schema``
     - The schema in which to put the migration history table
@@ -166,8 +172,8 @@ For example, in ``pyproject.toml``:
 cooldb = "my_package.my_module:CoolDbBackend"
 ```
 
-Once the package is installed, the backend will be available to use with a `flux`, as long as it's installed in the same environment.
-An example configuration file for our new backend:
+When the new package is installed in the same environment as ``flux``, the backend will be available to use with ``flux``.
+An example ``flux.toml`` file that uses our new backend:
 
 ```toml
 [flux]
