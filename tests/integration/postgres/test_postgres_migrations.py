@@ -750,6 +750,7 @@ async def test_postgres_migrations_with_bad_migration(
         assert {m[0]: m[1] for m in migrations_table_rows} == {
             "20200101_001_add_description_to_simple_table": "1ddd0147bd77f7dd8d9c064584a2559d",  # noqa: E501
             "20200102_001_add_timestamp_to_another_table": "a78bba561022b845e60ac752288fdee4",  # noqa: E501
+            "20200102_002_create_new_table": "ee1ceca0e0080b8e32c131bb88bc573a",
         }
 
         simple_table_info = await postgres_backend.table_info("simple_table")
@@ -767,7 +768,10 @@ async def test_postgres_migrations_with_bad_migration(
         ]
 
         new_table_info = await postgres_backend.table_info("new_table")
-        assert new_table_info == []
+        assert new_table_info == [
+            ("id", "integer"),
+            ("info", "text"),
+        ]
 
         view1_info = await postgres_backend.table_info("view1")
         assert view1_info == [

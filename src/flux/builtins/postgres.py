@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 try:
     import sqlparse
     from databases import Database
-    from databases.core import Connection, Transaction
+    from databases.core import Connection
 except ImportError as e:
     raise ImportError(
         "Please install the postgres dependency group of flux-migrations to use the builtin Postgres backend. For example: pip install 'flux-migrations[postgres]'"  # noqa: E501
@@ -31,7 +31,6 @@ class FluxPostgresBackend(MigrationBackend):
     migrations_lock_id: int = DEFAULT_MIGRATIONS_LOCK_ID
 
     _db: Database = field(init=False, repr=False)
-    _tx: Transaction = field(init=False, repr=False)
     _conn: Connection = field(init=False, repr=False)
 
     @property

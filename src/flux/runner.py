@@ -46,10 +46,10 @@ class FluxRunner:
 
         await self._exit_stack.enter_async_context(self.backend.connection())
         await self._exit_stack.enter_async_context(self.backend.migration_lock())
-        await self._exit_stack.enter_async_context(self.backend.transaction())
 
         if not await self.backend.is_initialized():
-            await self.backend.initialize()
+            async with self.backend.transaction():
+                await self.backend.initialize()
 
         self.pre_apply_migrations = read_pre_apply_migrations(config=self.config)
         self.migrations = read_migrations(config=self.config)
@@ -96,7 +96,8 @@ class FluxRunner:
     async def _apply_pre_apply_migrations(self):
         for migration in self.pre_apply_migrations:
             try:
-                await self.backend.apply_migration(migration.up)
+                async with self.backend.transaction():
+                    await self.backend.apply_migration(migration.up)
             except Exception as e:
                 raise MigrationApplyError(
                     f"Failed to apply pre-apply migration {migration.id}"
@@ -105,7 +106,8 @@ class FluxRunner:
     async def _apply_post_apply_migrations(self):
         for migration in self.post_apply_migrations:
             try:
-                await self.backend.apply_migration(migration.up)
+                async with self.backend.transaction():
+                    await self.backend.apply_migration(migration.up)
             except Exception as e:
                 raise MigrationApplyError(
                     f"Failed to apply post-apply migration {migration.id}"
@@ -145,19 +147,21 @@ class FluxRunner:
 
         await self._apply_pre_apply_migrations()
 
-        for migration in migrations_to_apply:
-            if migration.id in {m.id for m in self.applied_migrations}:
-                continue
-
-            try:
-                await self.backend.apply_migration(migration.up)
-                await self.backend.register_migration(migration)
-            except Exception as e:
-                raise MigrationApplyError(
-                    f"Failed to apply migration {migration.id}"
-                ) from e
-
-        await self._apply_post_apply_migrations()
+        migration: Migration | None = None
+        try:
+            for migration in migrations_to_apply:
+                if migration.id in {m.id for m in self.applied_migrations}:
+                    continue
+                async with self.backend.transaction():
+                    await self.backend.apply_migration(migration.up)
+                    await self.backend.register_migration(migration)
+        except Exception as e:
+            raise MigrationApplyError(
+                f"Failed to apply migration {migration.id if migration else ''}"
+            ) from e
+        finally:
+            async with self.backend.transaction():
+                await self._apply_post_apply_migrations()
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
@@ -180,17 +184,20 @@ class FluxRunner:
 
         migrations_to_rollback = self.migrations_to_rollback(n=n)
 
-        for migration in migrations_to_rollback:
-            try:
-                if migration.down is not None:
-                    await self.backend.apply_migration(migration.down)
-                await self.backend.unregister_migration(migration)
-            except Exception as e:
-                raise MigrationApplyError(
-                    f"Failed to rollback migration {migration.id}"
-                ) from e
-
-        if self.config.apply_repeatable_on_down:
-            await self._apply_post_apply_migrations()
+        migration: Migration | None = None
+        try:
+            for migration in migrations_to_rollback:
+                async with self.backend.transaction():
+                    if migration.down is not None:
+                        await self.backend.apply_migration(migration.down)
+                    await self.backend.unregister_migration(migration)
+        except Exception as e:
+            raise MigrationApplyError(
+                f"Failed to rollback migration {migration.id if migration else ''}"
+            ) from e
+        finally:
+            if self.config.apply_repeatable_on_down:
+                async with self.backend.transaction():
+                    await self._apply_post_apply_migrations()
 
         self.applied_migrations = await self.backend.get_applied_migrations()
