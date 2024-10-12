@@ -108,7 +108,7 @@ async def _new(ctx: typer.Context, name: str, kind: MigrationKind):
 
     os.makedirs(config.migration_directory, exist_ok=True)
 
-    date_part = dt.date.today().strftime("%Y%d%m")
+    date_part = dt.date.today().strftime("%Y%m%d")
     migration_index = 1
 
     name_part = "-".join(name.lower().split())
