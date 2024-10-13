@@ -1,6 +1,6 @@
+import asyncio
 import datetime as dt
 import os
-from asyncio import run as asyncio_run
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -22,6 +22,16 @@ APPLIED_STATUS = "Applied"
 TO_APPLY_STATUS = "To Apply"
 TO_ROLLBACK_STATUS = "To Undo"
 NOT_APPLIED_STATUS = "Not Applied"
+
+
+def async_run(coro):
+    # Temp ugly workaround for testing until typer supports async
+    # See fastapi/typer#950
+    if os.environ.get("FLUX_TESTING"):
+        import nest_asyncio
+
+        nest_asyncio.apply()
+    asyncio.run(coro)
 
 
 @dataclass
@@ -167,7 +177,7 @@ def new(
     name: Annotated[str, typer.Argument(help="Migration name and default comment")],
     kind: MigrationKind = MigrationKind.python,
 ):
-    asyncio_run(_new(ctx=ctx, name=name, kind=kind))
+    async_run(_new(ctx=ctx, name=name, kind=kind))
 
 
 async def _print_apply_report(runner: FluxRunner, n: int | None):
@@ -249,7 +259,7 @@ def apply(
     ] = None,
     auto_approve: bool = False,
 ):
-    asyncio_run(
+    async_run(
         _apply(ctx, connection_uri=connection_uri, n=n, auto_approve=auto_approve)
     )
 
@@ -290,6 +300,6 @@ def rollback(
     ] = None,
     auto_approve: bool = False,
 ):
-    asyncio_run(
+    async_run(
         _rollback(ctx, connection_uri=connection_uri, n=n, auto_approve=auto_approve)
     )
