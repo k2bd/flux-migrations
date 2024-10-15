@@ -165,7 +165,9 @@ class FluxRunner:
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
-    def migrations_to_rollback(self, n: int | None = None):
+    def migrations_to_rollback(self, n: int | None = None) -> list[Migration]:
+        if n == 0:
+            return []
         applied_migrations = self.list_applied_migrations()
         migrations_to_rollback = (
             applied_migrations[-n:] if n is not None else applied_migrations
@@ -201,3 +203,23 @@ class FluxRunner:
                     await self._apply_post_apply_migrations()
 
         self.applied_migrations = await self.backend.get_applied_migrations()
+
+    async def rollback_migration(self, migration_id: str):
+        """
+        Rollback all migrations up to and including the given migration ID
+        """
+        applied_migrations = self.list_applied_migrations()
+        target_migration_index = next(
+            (
+                index
+                for index, migration in enumerate(applied_migrations)
+                if migration.id == migration_id
+            ),
+            None,
+        )
+        if target_migration_index is None:
+            raise ValueError(f"Migration {migration_id!r} has not been applied")
+
+        n = len(applied_migrations) - target_migration_index
+
+        await self.rollback_migrations(n=n)
