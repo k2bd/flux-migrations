@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from freezegun import freeze_time
 from typer.testing import CliRunner
 
 from flux.builtins.postgres import FluxPostgresBackend
@@ -8,7 +9,6 @@ from flux.cli import app
 from flux.runner import FluxRunner
 from tests.helpers import change_cwd
 from tests.integration.postgres.helpers import postgres_config
-from freezegun import freeze_time
 
 
 def test_cli_init(example_project_dir: str):
