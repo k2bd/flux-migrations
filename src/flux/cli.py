@@ -2,7 +2,6 @@ import asyncio
 import datetime as dt
 import os
 from dataclasses import dataclass
-from enum import Enum
 from typing import Optional
 
 import typer
@@ -14,7 +13,12 @@ from typing_extensions import Annotated
 
 from flux.backend.get_backends import get_backend
 from flux.config import FluxConfig
-from flux.constants import FLUX_CONFIG_FILE, FLUX_DEFAULT_MIGRATION_DIRECTORY
+from flux.constants import (
+    FLUX_CONFIG_FILE,
+    FLUX_DEFAULT_MIGRATION_DIRECTORY,
+    POST_APPLY_DIRECTORY,
+    PRE_APPLY_DIRECTORY,
+)
 from flux.exceptions import BackendNotInstalledError
 from flux.runner import FluxRunner
 
@@ -105,18 +109,31 @@ migration_directory = "{migration_dir}"
     print(f"Created {FLUX_CONFIG_FILE}")
 
 
-class MigrationKind(str, Enum):
-    sql = "sql"
-    python = "python"
-
-
-async def _new(ctx: typer.Context, name: str, kind: MigrationKind):
+async def _new(
+    ctx: typer.Context,
+    name: str,
+    sql: bool,
+    pre: bool,
+    post: bool,
+):
     config: FluxConfig | None = ctx.obj.config
     if config is None:
         print("Please run `flux init` to create a configuration file")
         raise typer.Exit(code=1)
 
-    os.makedirs(config.migration_directory, exist_ok=True)
+    if pre and post:
+        print("Cannot create migration with both --pre and --post")
+        raise typer.Exit(code=1)
+
+    repeatable = pre or post
+
+    target_dir = config.migration_directory
+    if pre:
+        target_dir = os.path.join(target_dir, PRE_APPLY_DIRECTORY)
+    if post:
+        target_dir = os.path.join(target_dir, POST_APPLY_DIRECTORY)
+
+    os.makedirs(target_dir, exist_ok=True)
 
     date_part = dt.date.today().strftime("%Y%m%d")
     migration_index = 1
@@ -126,7 +143,7 @@ async def _new(ctx: typer.Context, name: str, kind: MigrationKind):
     def migration_filename_prefix() -> str:
         return f"{date_part}_{migration_index:>03}"
 
-    migration_filenames = os.listdir(config.migration_directory)
+    migration_filenames = os.listdir(target_dir)
     while any(
         [
             filename.startswith(migration_filename_prefix())
@@ -137,20 +154,17 @@ async def _new(ctx: typer.Context, name: str, kind: MigrationKind):
 
     migration_basename = f"{migration_filename_prefix()}_{name_part}"
 
-    if kind == MigrationKind.sql:
-        with open(
-            os.path.join(config.migration_directory, f"{migration_basename}.sql"), "w"
-        ) as f:
+    if sql:
+        with open(os.path.join(target_dir, f"{migration_basename}.sql"), "w") as f:
             f.write("")
-        with open(
-            os.path.join(config.migration_directory, f"{migration_basename}.undo.sql"),
-            "w",
-        ) as f:
-            f.write("")
-    elif kind == MigrationKind.python:
-        with open(
-            os.path.join(config.migration_directory, f"{migration_basename}.py"), "w"
-        ) as f:
+        if not repeatable:
+            with open(
+                os.path.join(target_dir, f"{migration_basename}.undo.sql"),
+                "w",
+            ) as f:
+                f.write("")
+    else:
+        with open(os.path.join(target_dir, f"{migration_basename}.py"), "w") as f:
             f.write(
                 f'''"""
 {name}
@@ -160,27 +174,46 @@ async def _new(ctx: typer.Context, name: str, kind: MigrationKind):
 def apply():
     return """ """
 
-
+'''
+            )
+            if not repeatable:
+                f.write(
+                    '''
 def undo():
     return """ """
 
 '''
-            )
-    else:
-        print(f"Invalid migration type {kind}")
-        raise typer.Exit(code=1)
+                )
 
 
 @app.command()
 def new(
     ctx: typer.Context,
     name: Annotated[str, typer.Argument(help="Migration name and default comment")],
-    kind: MigrationKind = MigrationKind.python,
+    sql: Annotated[bool, typer.Option("--sql")] = False,
+    pre: Annotated[bool, typer.Option("--pre")] = False,
+    post: Annotated[bool, typer.Option("--post")] = False,
 ):
-    async_run(_new(ctx=ctx, name=name, kind=kind))
+    async_run(_new(ctx=ctx, name=name, sql=sql, pre=pre, post=post))
 
 
-async def _print_apply_report(runner: FluxRunner, n: int | None):
+def _print_status_report(runner: FluxRunner):
+    table = Table(title="Status")
+    table.add_column("ID")
+    table.add_column("Status")
+
+    for migration in runner.list_applied_migrations():
+        table.add_row(migration.id, APPLIED_STATUS)
+
+    for migration in runner.list_unapplied_migrations():
+        status = NOT_APPLIED_STATUS
+        table.add_row(migration.id, status)
+
+    console = Console()
+    console.print(table)
+
+
+def _print_apply_report(runner: FluxRunner, n: int | None):
     table = Table(title="Apply Migrations")
     table.add_column("ID")
     table.add_column("Status")
@@ -202,7 +235,7 @@ async def _print_apply_report(runner: FluxRunner, n: int | None):
     console.print(table)
 
 
-async def _print_rollback_report(runner: FluxRunner, n: int | None):
+def _print_rollback_report(runner: FluxRunner, n: int | None):
     table = Table(title="Rollback Migrations")
     table.add_column("ID")
     table.add_column("Status")
@@ -224,6 +257,19 @@ async def _print_rollback_report(runner: FluxRunner, n: int | None):
     console.print(table)
 
 
+async def _status(connection_uri: str):
+    async with FluxRunner.from_file(
+        path=FLUX_CONFIG_FILE,
+        connection_uri=connection_uri,
+    ) as runner:
+        _print_status_report(runner=runner)
+
+
+@app.command()
+def status(connection_uri: str):
+    async_run(_status(connection_uri=connection_uri))
+
+
 async def _apply(
     ctx: typer.Context,
     connection_uri: str,
@@ -238,7 +284,7 @@ async def _apply(
         path=FLUX_CONFIG_FILE,
         connection_uri=connection_uri,
     ) as runner:
-        await _print_apply_report(runner=runner, n=n)
+        _print_apply_report(runner=runner, n=n)
         if not auto_approve:
             if not Confirm.ask("Apply these migrations?"):
                 raise typer.Exit(1)
@@ -269,6 +315,7 @@ async def _rollback(
     connection_uri: str,
     n: int | None,
     auto_approve: bool = False,
+    repeatable: bool | None = None,
 ):
     config: FluxConfig | None = ctx.obj.config
     if config is None:
@@ -278,12 +325,12 @@ async def _rollback(
         path=FLUX_CONFIG_FILE,
         connection_uri=connection_uri,
     ) as runner:
-        await _print_rollback_report(runner=runner, n=n)
+        _print_rollback_report(runner=runner, n=n)
         if not auto_approve:
             if not Confirm.ask("Undo these migrations?"):
                 raise typer.Exit(1)
 
-        await runner.rollback_migrations(n=n)
+        await runner.rollback_migrations(n=n, apply_repeatable=repeatable)
 
 
 @app.command()
@@ -299,7 +346,14 @@ def rollback(
         ),
     ] = None,
     auto_approve: bool = False,
+    repeatable: bool | None = None,
 ):
     async_run(
-        _rollback(ctx, connection_uri=connection_uri, n=n, auto_approve=auto_approve)
+        _rollback(
+            ctx,
+            connection_uri=connection_uri,
+            n=n,
+            auto_approve=auto_approve,
+            repeatable=repeatable,
+        )
     )

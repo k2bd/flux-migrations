@@ -34,6 +34,29 @@ migration_directory = "migrations"
         )
 
 
+def test_cli_init_backend_prompt(example_project_dir: str):
+    with change_cwd(example_project_dir):
+        runner = CliRunner()
+        result = runner.invoke(app, ["init"], input="postgres\n")
+        assert result.exit_code == 0, result.stdout
+
+        assert os.path.exists("flux.toml")
+
+        with open("flux.toml", "r") as f:
+            config = f.read()
+
+        assert config == (
+            """\
+[flux]
+backend = "postgres"
+migration_directory = "migrations"
+
+[backend]
+# Add backend-specific configuration here
+"""
+        )
+
+
 def test_cli_init_twice_errors(example_project_dir: str):
     with change_cwd(example_project_dir):
         runner = CliRunner()
@@ -290,9 +313,7 @@ async def test_cli_new_python(
         assert result.exit_code == 0, result.stdout
 
         with freeze_time("2021-02-03T05:06:07Z"):
-            result = runner.invoke(
-                app, ["new", "--kind", "python", "Another new migration"]
-            )
+            result = runner.invoke(app, ["new", "Another new migration"])
 
         assert result.exit_code == 0, result.stdout
 
@@ -347,6 +368,152 @@ def undo():
         )
 
 
+async def test_cli_new_python_pre(
+    example_project_dir: str,
+    example_migrations_dir: str,
+    postgres_backend: FluxPostgresBackend,
+    database_uri: str,
+):
+    with change_cwd(example_project_dir):
+        runner = CliRunner()
+        result = runner.invoke(app, ["init", "postgres"])
+        assert result.exit_code == 0, result.stdout
+
+        with freeze_time("2021-02-03T04:05:06Z"):
+            result = runner.invoke(app, ["new", "--pre", "A new migration"])
+
+        assert result.exit_code == 0, result.stdout
+
+        with freeze_time("2021-02-03T05:06:07Z"):
+            result = runner.invoke(app, ["new", "--pre", "Another new migration"])
+
+        assert result.exit_code == 0, result.stdout
+
+    first_migration_file = os.path.join(
+        example_migrations_dir, "pre-apply", "20210203_001_a-new-migration.py"
+    )
+    second_migration_file = os.path.join(
+        example_migrations_dir, "pre-apply", "20210203_002_another-new-migration.py"
+    )
+
+    assert os.path.exists(first_migration_file)
+    assert os.path.exists(second_migration_file)
+
+    with open(first_migration_file, "r") as f:
+        content = f.read()
+        assert (
+            content
+            == '''\
+"""
+A new migration
+"""
+
+
+def apply():
+    return """ """
+
+'''
+        )
+
+    with open(second_migration_file, "r") as f:
+        content = f.read()
+        assert (
+            content
+            == '''\
+"""
+Another new migration
+"""
+
+
+def apply():
+    return """ """
+
+'''
+        )
+
+
+async def test_cli_new_python_post(
+    example_project_dir: str,
+    example_migrations_dir: str,
+    postgres_backend: FluxPostgresBackend,
+    database_uri: str,
+):
+    with change_cwd(example_project_dir):
+        runner = CliRunner()
+        result = runner.invoke(app, ["init", "postgres"])
+        assert result.exit_code == 0, result.stdout
+
+        with freeze_time("2021-02-03T04:05:06Z"):
+            result = runner.invoke(app, ["new", "--post", "A new migration"])
+
+        assert result.exit_code == 0, result.stdout
+
+        with freeze_time("2021-02-03T05:06:07Z"):
+            result = runner.invoke(app, ["new", "--post", "Another new migration"])
+
+        assert result.exit_code == 0, result.stdout
+
+    first_migration_file = os.path.join(
+        example_migrations_dir, "post-apply", "20210203_001_a-new-migration.py"
+    )
+    second_migration_file = os.path.join(
+        example_migrations_dir, "post-apply", "20210203_002_another-new-migration.py"
+    )
+
+    assert os.path.exists(first_migration_file)
+    assert os.path.exists(second_migration_file)
+
+    with open(first_migration_file, "r") as f:
+        content = f.read()
+        assert (
+            content
+            == '''\
+"""
+A new migration
+"""
+
+
+def apply():
+    return """ """
+
+'''
+        )
+
+    with open(second_migration_file, "r") as f:
+        content = f.read()
+        assert (
+            content
+            == '''\
+"""
+Another new migration
+"""
+
+
+def apply():
+    return """ """
+
+'''
+        )
+
+
+async def test_cli_new_python_pre_and_post(
+    example_project_dir: str,
+    example_migrations_dir: str,
+    postgres_backend: FluxPostgresBackend,
+    database_uri: str,
+):
+    with change_cwd(example_project_dir):
+        runner = CliRunner()
+        result = runner.invoke(app, ["init", "postgres"])
+        assert result.exit_code == 0, result.stdout
+
+        with freeze_time("2021-02-03T04:05:06Z"):
+            result = runner.invoke(app, ["new", "--pre", "--post", "A new migration"])
+
+        assert result.exit_code == 1, result.stdout
+        assert "Cannot create migration with both --pre and --post" in result.stdout
+
+
 async def test_cli_new_sql(
     example_project_dir: str,
     example_migrations_dir: str,
@@ -359,14 +526,12 @@ async def test_cli_new_sql(
         assert result.exit_code == 0, result.stdout
 
         with freeze_time("2021-02-03T04:05:06Z"):
-            result = runner.invoke(app, ["new", "--kind", "sql", "A new migration"])
+            result = runner.invoke(app, ["new", "--sql", "A new migration"])
 
         assert result.exit_code == 0, result.stdout
 
         with freeze_time("2021-02-03T05:06:07Z"):
-            result = runner.invoke(
-                app, ["new", "--kind", "sql", "Another new migration"]
-            )
+            result = runner.invoke(app, ["new", "--sql", "Another new migration"])
 
         assert result.exit_code == 0, result.stdout
 
@@ -403,3 +568,34 @@ async def test_cli_new_sql(
     with open(second_down_migration_file, "r") as f:
         content = f.read()
         assert content == ""
+
+
+async def test_cli_status_report(
+    example_project_dir: str,
+    example_migrations_dir: str,
+    postgres_backend: FluxPostgresBackend,
+    database_uri: str,
+):
+    with change_cwd(example_project_dir):
+        runner = CliRunner()
+        result = runner.invoke(app, ["init", "postgres"])
+        assert result.exit_code == 0, result.stdout
+
+        result = runner.invoke(app, ["apply", "--auto-approve", database_uri, str(1)])
+        assert result.exit_code == 0, result.stdout
+
+        result = runner.invoke(app, ["status", database_uri])
+        assert result.exit_code == 0, result.stdout
+        assert (
+            result.stdout
+            == """\
+                            Status                            
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ ID                                           ┃ Status      ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ 20200101_001_add_description_to_simple_table │ Applied     │
+│ 20200102_001_add_timestamp_to_another_table  │ Not Applied │
+│ 20200102_002_create_new_table                │ Not Applied │
+└──────────────────────────────────────────────┴─────────────┘
+"""  # noqa: W291
+        )

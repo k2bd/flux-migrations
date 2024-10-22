@@ -48,7 +48,8 @@ class FluxConfig:
             )
 
         apply_repeatable_on_down = general_config.get(
-            FLUX_APPLY_REPEATABLE_ON_DOWN_KEY, FLUX_DEFAULT_APPLY_REPEATABLE_ON_DOWN
+            FLUX_APPLY_REPEATABLE_ON_DOWN_KEY,
+            FLUX_DEFAULT_APPLY_REPEATABLE_ON_DOWN,
         )
 
         log_level = general_config.get(FLUX_LOG_LEVEL_KEY, FLUX_DEFAULT_LOG_LEVEL)
