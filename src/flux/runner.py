@@ -174,14 +174,24 @@ class FluxRunner:
         )
         return migrations_to_rollback[::-1]
 
-    async def rollback_migrations(self, n: int | None = None):
+    async def rollback_migrations(
+        self,
+        n: int | None = None,
+        apply_repeatable: bool | None = None,
+    ):
         """
         Rollback applied migrations from the database, applying any undo
         migrations if they exist.
         """
         await self.validate_applied_migrations()
 
-        if self.config.apply_repeatable_on_down:
+        should_apply_repeatable = (
+            apply_repeatable
+            if apply_repeatable is not None
+            else self.config.apply_repeatable_on_down
+        )
+
+        if should_apply_repeatable:
             await self._apply_pre_apply_migrations()
 
         migrations_to_rollback = self.migrations_to_rollback(n=n)
@@ -198,13 +208,17 @@ class FluxRunner:
                 f"Failed to rollback migration {migration.id if migration else ''}"
             ) from e
         finally:
-            if self.config.apply_repeatable_on_down:
+            if should_apply_repeatable:
                 async with self.backend.transaction():
                     await self._apply_post_apply_migrations()
 
         self.applied_migrations = await self.backend.get_applied_migrations()
 
-    async def rollback_migration(self, migration_id: str):
+    async def rollback_migration(
+        self,
+        migration_id: str,
+        apply_repeatable: bool | None = None,
+    ):
         """
         Rollback all migrations up to and including the given migration ID
         """
@@ -222,4 +236,4 @@ class FluxRunner:
 
         n = len(applied_migrations) - target_migration_index
 
-        await self.rollback_migrations(n=n)
+        await self.rollback_migrations(n=n, apply_repeatable=apply_repeatable)

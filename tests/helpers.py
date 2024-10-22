@@ -15,7 +15,7 @@ def example_config(
     backend: str,
     migration_directory: str,
     log_level: str = "DEBUG",
-    apply_repeatable_on_down: bool = False,
+    apply_repeatable_on_down: bool = True,
     backend_config: dict | None = None,
 ):
     return FluxConfig(

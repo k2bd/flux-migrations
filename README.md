@@ -44,6 +44,9 @@ flux new "Initial tables"
 There are two forms that migrations can take in ``flux`` - Python files and sql files.
 Both forms define up and optional down migrations.
 
+In each case, you can append ``--pre`` or ``--post`` to create pre-apply and post-apply migrations.
+These will run before/after any batch of migrations are run (by default, they're also run before/after rollbacks, but this can be disabled)
+
 ### Migrations as Python files
 
 By default ``flux`` creates Python migration files when you run ``flux new "My new migration"``.
@@ -118,7 +121,7 @@ def apply():
 ### Migrations as sql files
 
 It may be that you prefer just writing sql files for your migrations, and you just want ``flux`` for its flexibility or testing functionality.
-That's cool too, just run ``flux new --kind sql "My new migration"``.
+That's cool too, just run ``flux new --sql "My new migration"``.
 
 Up-migration files are just files ending with ``.sql``. They can have down-migration counterparts ending with ``.undo.sql``.
 
